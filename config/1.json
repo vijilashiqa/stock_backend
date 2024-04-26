@@ -1,0 +1,13 @@
+{
+  "mysqltesting": {
+    "Server_Name": "TESTING",
+    "public_ip": "103.231.217.170",
+    "host": "192.168.32.251",
+    "user": "nocstock",
+    "password": "NocDB123,",
+    "database": "stock_mgmt",
+    "rootuser": "root",
+    "rootpassword": "apptest123,",
+    "ssh": "22"
+  }
+  }
