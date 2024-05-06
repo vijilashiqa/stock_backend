@@ -12,14 +12,15 @@ menurole.post('/listmenurole', function (req, res, err) {
             sqlqueryc = ' SELECT COUNT(*) AS count  FROM stock_mgmt.users u LEFT JOIN stock_mgmt.urole r ON  r.role=u.urole', finalresult = [],
             data = req.body;
     
-        // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` device.hdid= ${data.hdid} `);
-        // if (jwtdata.role <= 777) where.push(` device.hdid= ${jwtdata.hdid} `);
+    if(data.hasOwnProperty('fname')&& data.fname) where.push(` u.fname ='${data.fname}'`)
+ 
+    if(data.hasOwnProperty('id')&& data.id) where.push(` u.id =${data.id}`)       
     
-        // if (where.length > 0) {
-        //     where = ' WHERE' + where.join(' AND ');
-        //     sqlquery += where;
-        //     sqlqueryc += where;
-        // }
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+            sqlqueryc += where;
+        }
         sqlquery += ' LIMIT ?,? ';
         console.log('test',sqlquery);
         console.log(sqlqueryc);
@@ -46,11 +47,28 @@ menurole.post('/listmenurole', function (req, res, err) {
     });
     
 
+    
+   
+   menurole.post('/getfullname', function (req, res) {
+        pool.getConnection(function (err, conn) {
+            if (err) {
+                console.log(err);
+            } else {
+                var sql = conn.query(`select * from stock_mgmt.users  `, function (err, result) {
+                    conn.release();
+                    if (!err) {
+                        res.end(JSON.stringify(result));
+                    }
+                });
+            }
+        });
+    });
+
     menurole.post("/getmenurole", (req, res) => {
         let jwtdata = req.jwt_data, sqlg, data = req.body;
         console.log("Data--", data);
         pool.getConnection((err, con) => {
-            let sqlpr = `select id,loginid,rolename,urole,umenu from stock_mgmt.users  where id =${data.id}`;
+            let sqlpr = `select * from stock_mgmt.users  where id =${data.id}`;
 
             console.log("Query---", sqlpr);
             if (data.id) {
@@ -69,6 +87,89 @@ menurole.post('/listmenurole', function (req, res, err) {
     
             }
         });
+    });
+
+
+
+
+    async function addusers(req) {
+        console.log('Add model Data:', req.jwt_data);
+        return new Promise(async (resolve, reject) => {
+            var erroraray = [], data = req.body, jwtdata = req.jwt_data,insertdata = { menurole: JSON.stringify(data.menurole), };
+            let conn = await poolPromise.getConnection();
+            if (conn) {
+                await conn.beginTransaction();
+                try {
+                    console.log('user Data', data);
+                    let addmenurole = await conn.query("SELECT count(*) count FROM stock_mgmt.users WHERE loginid = '" + data.loginid + "'  ");
+                    if (addmenurole[0][0]['count'] == 0) {
+                        data.address = data.address.replace("'", ' ');
+    
+                        let addmenurole = `INSERT INTO stock_mgmt.users SET 
+                            bid=${data.bid},
+                            urole=${data.urole},
+                           loginid='${data.loginid}',
+                            fname='${data.fname}',                  
+                            pwd=md5('${data.pwd}'),
+                            mobile=${data.mobile},                 
+                            address='${data.address}',
+                            email='${data.email}',
+                            umenu='${insertdata.menurole}' 
+                            `;
+    
+                        console.log('ADD users Query: ', addmenurole);
+                        addmenurole = await conn.query(addmenurole);
+                        if (addmenurole[0]['affectedRows'] > 0) {
+                            let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD users',`longtext`='DONE BY'";
+                            sqllog = await conn.query(sqllog);
+                            if (sqllog[0]['affectedRows'] > 0) {
+                                erroraray.push({ msg: " User created Succesfully", err_code: 0 });
+                                await conn.commit();
+                            }
+    
+                        }
+    
+                        else {
+                            erroraray.push({ msg: "Contact Your Admin.", err_code: 236 });
+                            await conn.rollback();
+                        }
+    
+                    } else {
+                        erroraray.push({ msg: " User  Already Exists.", err_code: 241 });
+    
+                        await conn.rollback();
+                    }
+                } catch (e) {
+                    console.log('Error ', e);
+                    erroraray.push({ msg: 'Please try after sometimes err', err_code: 'ERR' })
+    
+                    await conn.rollback();
+                }
+                console.log('Success--1');
+                console.log('connection Closed.');
+                conn.release();
+            } else {
+                erroraray.push({ msg: 'Please try after sometimes', err_code: 255 })
+                return;
+            }
+            console.log('success--2');
+            return resolve(erroraray);
+        });
+    }
+
+
+menurole.post('/addusers', async (req, res) => {
+        req.setTimeout(864000000);
+    
+        // const validation = joiValidate.usersDatachema.validate(req.body);
+        // if (validation.error) {
+        //     console.log(validation.error.details);
+        //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+        // }
+        let result = await addusers(req);
+        console.log("Process Completed", result);
+        res.end(JSON.stringify(result));
     });
 
 
@@ -93,7 +194,16 @@ menurole.post('/listmenurole', function (req, res, err) {
                         erroraray.push({ msg: "No Data Found", err_code: 1 });
                         await conn.rollback();
                     } else {
-                        let sqlupdate = `update stock_mgmt.users set umenu='${insertdata.menurole}' where id ='${data.id}' `;
+                        let sqlupdate = `UPDATE  stock_mgmt.users SET  
+                    bid=${data.bid},
+                    loginid='${data.loginid}',
+                    urole=${data.urole},
+                    fname='${data.fname}',                  
+                    mobile=${data.mobile},                 
+                    address='${data.address}',
+                    email='${data.email}',
+                    rolename ='${data.rolename}',
+                        umenu='${insertdata.menurole}' where id ='${data.id}' `;
                         // if (jwtdata.role > 777 && data.hdid != null && data.hdid != '') sqlupdate += ` AND hdid=${hdid} `;
                         console.log("update query", sqlupdate);
                         let result = await conn.query(sqlupdate, data);

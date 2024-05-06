@@ -140,19 +140,12 @@ device.post('/selectdevice', function (req, res) {
 });
 
 device.post('/getdevice', function (req, res) {
-    var data = req.body, where = [], jwtdata = req.jwt_data,
+    var data = req.body,
         sql, sqlquery = `SELECT * FROM stock_mgmt.device WHERE deviceid =${data.deviceid}`;
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
-    if (where.length > 0) {
-        where = where.join(' AND ');
-        sqlquery += where;
-    }
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, function (err, result) {
-                // console.log(id,"++++++++++");
-                console.log('get channel', sql.sql);
+                console.log('get device', sql.sql);
                 conn.release();
                 if (!err) {
                     res.end(JSON.stringify(result[0]));

@@ -141,6 +141,32 @@ business.post('/listbusiness', function (req, res, err) {
     });
 });
 
+
+business.post('/getbank', function (req, res, err) {
+    var sql, sqlquery = `SELECT * FROM stock_mgmt.bank`,
+        sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.bank`, finalresult = [];
+    console.log('-------------------', sqlquery);
+    pool.getConnection(function (err, conn) {
+        if (!err) {
+            sql = conn.query(sqlquery, function (err, result) {
+                if (!err) {
+                    finalresult.push(result);
+                    sql = conn.query(sqlqueryc, function (err, result) {
+                        conn.release();
+                        if (!err) {
+                            finalresult.push(result[0]);
+                            res.end(JSON.stringify(finalresult));
+                        }
+                    });
+                } else {
+                    conn.release();
+                }
+            });
+        }
+    });
+});
+
+
 business.post('/getbusinessaddredit', function (req, res, err) {
 	var jwtdata = req.jwt_data, where = [], sql,
 		sqlquery = `SELECT *  FROM stock_mgmt.business_address `, finalresult = [],
@@ -292,6 +318,9 @@ business.post('/getbusiness', function (req, res, err) {
 		}
 	});
 });
+
+
+
 async function businessaddrupdate(stockinid,conn,businessId) {
 	return new Promise (async(resolve,reject)=>{
 	let errorArray=[],fstatus=false;
