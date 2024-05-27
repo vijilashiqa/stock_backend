@@ -12,6 +12,4 @@ const deviceData={
       deviceData
   ).options({ stripUnknown: true });  
   
-  module.exports.editdeviceDataSchema = Joi.object().keys({
-      deviceData, detData
-  }).options({ stripUnknown: true });
+  module.exports.editdeviceDataSchema = Joi.object().keys(deviceData, detData).options({ stripUnknown: true });

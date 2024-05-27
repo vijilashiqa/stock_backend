@@ -43,28 +43,25 @@ const stateData={
 
 const stData = { id: Joi.number().integer().required().label('ID Required') }
 
-module.exports.stateDataSchema = Joi.object().keys(
-stateData
-).options({ stripUnknown: true });
+module.exports.stateDataSchema = Joi.object().keys(stateData).options({ stripUnknown: true });
 
-module.exports.editsateDataSchema = Joi.object().keys({
-stateData, stData
-}).options({ stripUnknown: true });
+module.exports.editsateDataSchema = Joi.object().keys(stateData, stData).options({ stripUnknown: true });
+
+
+
+
 ////////////////////////////////////////////////////////district/////////////////////////////////////////
 const distData={
 
-  district_name:Joi.string().required().label('district name required'),
+
+  state_fk :Joi.number().integer().required().label('State Name is Required'),
+  district_name:Joi.string().required().label('District Name is Required'),
 }
 
 const dtData = { id: Joi.number().integer().required().label('ID Required') }
 
-module.exports.distDataSchema = Joi.object().keys(
-distData
-).options({ stripUnknown: true });
-
-module.exports.editdistDataSchema = Joi.object().keys({
-distData, dtData
-}).options({ stripUnknown: true });
+module.exports.distDataSchema = Joi.object().keys(distData).options({ stripUnknown: true });
+module.exports.editdistDataSchema = Joi.object().keys(distData, dtData).options({ stripUnknown: true });
 ///////////////////////////////////////////////////city//////////////////////////////////////////////////////////
 const cityData={
 
@@ -88,10 +85,6 @@ const areaData={
 
 const arData = { id: Joi.number().integer().required().label('ID Required') }
 
-module.exports.areaDataSchema = Joi.object().keys(
-areaData
-).options({ stripUnknown: true });
+module.exports.areaDataSchema = Joi.object().keys(areaData).options({ stripUnknown: true });
 
-module.exports.editareaDataSchema = Joi.object().keys({
-areaData, arData
-}).options({ stripUnknown: true });
+module.exports.editareaDataSchema = Joi.object().keys({areaData, arData}).options({ stripUnknown: true });

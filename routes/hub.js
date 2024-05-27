@@ -5,6 +5,8 @@ var express = require('express'),
     hub = express.Router(),
     pool = require('../connection/conn'),
     poolPromise = require('../connection/conn').poolp;
+    const joiValidate = require('../schema/hub');
+
 
 async function addhub(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
@@ -176,12 +178,12 @@ async function edithub(req) {
 
 hub.post('/addhub', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.hubDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.hubDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await addhub(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
@@ -190,12 +192,12 @@ hub.post('/addhub', async (req, res) => {
 
 hub.post('/edithub', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.edithubDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.edithubDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await edithub(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));

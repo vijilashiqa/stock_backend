@@ -9,7 +9,7 @@ var express = require('express'),
     model = express.Router(),
     pool = require('../connection/conn'),
 poolPromise = require('../connection/conn').poolp;
-// const joiValidate = require('../schema/hsn');
+const joiValidate = require('../schema/model');
 
 
 
@@ -229,24 +229,24 @@ async function editmodel(req) {
 
 model.post('/addmodel', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.modelDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.modeldataschema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await addmodel(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
 });
 model.post('/editmodel', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.editmodelDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.editmodeldataschema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await editmodel(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));

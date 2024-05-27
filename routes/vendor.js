@@ -4,7 +4,7 @@ var express = require('express'),
 	vendors = express.Router(),
 	pool = require('../connection/conn'),
 	poolPromise = require('../connection/conn').poolp;
-// const joiValidate = require('../schema/vendor');
+const joiValidate = require('../schema/vendor');
 
 async function addvendor(req) {
 	console.log('Add vendor Data:', req.body);
@@ -444,11 +444,11 @@ async function vendoredit(req) {
 
 vendors.post('/vendoredit', async (req, res) => {
 	req.setTimeout(864000000);
-	// const validation = joiValidate.editvendorDataSchema.validate(req.body);
-	// if (validation.error) {
-	//     console.log(validation.error.details);
-	//     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-	// }
+	const validation = joiValidate.editvendorDataSchema.validate(req.body);
+	if (validation.error) {
+	    console.log(validation.error.details);
+	    return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+	}
 	let result = await vendoredit(req);
 	console.log("Process Completed", result);
 	res.end(JSON.stringify(result));
@@ -460,12 +460,12 @@ vendors.post('/vendoredit', async (req, res) => {
 vendors.post('/addvendor', async (req, res) => {
 	req.setTimeout(864000000);
 
-	// const validation = joiValidate.vendorDataSchema.validate(req.body);
-	// if (validation.error) {
-	//     console.log(validation.error.details);
-	//     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-	//     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-	// }
+	const validation = joiValidate.vendorDataSchema.validate(req.body);
+	if (validation.error) {
+	    console.log(validation.error.details);
+	    // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+	    return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+	}
 	let result = await addvendor(req);
 	console.log("Process Completed", result);
 	res.end(JSON.stringify(result));

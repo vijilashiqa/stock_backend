@@ -4,7 +4,7 @@ var express = require('express'),
     location = express.Router(),
     pool = require('../connection/conn'),
     poolPromise = require('../connection/conn').poolp;
-// const joiValidate = require('../schema/location');
+const joiValidate = require('../schema/location');
 
 //state//
 async function addstate(req) {
@@ -61,12 +61,12 @@ async function addstate(req) {
 }
 location.post('/addstate', async (req, res) => {
     req.setTimeout(864000000);
-      // const validation = joiValidate.stateDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+      const validation = joiValidate.stateDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await addstate(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
@@ -188,12 +188,12 @@ async function editstate(req) {
 
 location.post('/editstate', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.editsateDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.editsateDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await editstate(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
@@ -256,12 +256,12 @@ async function adddist(req) {
 }
 location.post('/adddist', async (req, res) => {
     req.setTimeout(864000000);
-       // const validation = joiValidate.distDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+       const validation = joiValidate.distDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await adddist(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
@@ -391,12 +391,12 @@ async function editdistrict(req) {
 
 location.post('/editdistrict', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.editdistDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.editdistDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await editdistrict(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));

@@ -4,7 +4,7 @@ var express = require('express'),
     invoice = express.Router(),
     pool = require('../connection/conn'),
     poolPromise = require('../connection/conn').poolp;
-// const joiValidate = require('../schema/invoice');
+const joiValidate = require('../schema/invoice');
 
 
 // async function taxcal(taxtype, amt, taxper) {
@@ -165,12 +165,12 @@ async function addinvoice(req) {
 
 invoice.post('/addinvoice', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.invoicedetDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.invoicedetDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await addinvoice(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));

@@ -4,7 +4,7 @@ var express = require('express'),
     own_use = express.Router(),
     pool = require('../connection/conn'),
     poolPromise = require('../connection/conn').poolp;
-
+    const joiValidate = require('../schema/ownuse');
 async function addown_use(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
@@ -290,12 +290,12 @@ async function editown_use(req) {
 
 own_use.post('/addown_use', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.own_useDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.own_useDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await addown_use(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
@@ -304,12 +304,12 @@ own_use.post('/addown_use', async (req, res) => {
 
 own_use.post('/editown_use', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.editown_useDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.editown_useDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await editown_use(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));

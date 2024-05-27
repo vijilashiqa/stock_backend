@@ -9,7 +9,7 @@ var express = require('express'),
     model_serial_no = express.Router(),
     pool = require('../connection/conn'),
     poolPromise = require('../connection/conn').poolp;
-// const joiValidate = require('../schema/model_serial_no');
+const joiValidate = require('../schema/model_serialno');
 
 
 
@@ -194,19 +194,6 @@ model_serial_no.post('/listmodel_serial_no', function (req, res) {
 model_serial_no.post('/selectmodel_serial_num', function (req, res) {
     var where = [], jwtdata = req.jwt_data, sql, data = req.body
         , sqlquery = 'SELECT * FROM stock_mgmt.model_serial_num';
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
-
-
-    // if (data.hasOwnProperty('model_serial_no_id-') && data.model_serial_no_id) {
-    //     sqlquery += ` AND model_serial_no_id =${data.model_serial_no_id}`;
-    // }
-    // if (data.hasOwnProperty('model_serial_no_name') && data.model_serial_no_name) {
-    //     sqlquery += ` AND model_serial_no_name =${data.model_serial_no_name}`;
-    // }
-    // if (data.hasOwnProperty('model_serial_no_num') && data.model_serial_no_num) {
-    //     sqlquery += ` AND model_serial_no_num =${data.model_serial_no_num}`;
-    // }
     if (where.length > 0) {
         where = ' WHERE' + where.join(' AND ');
         sqlquery += where;
@@ -233,12 +220,6 @@ model_serial_no.post('/getmodel_serial_no', function (req, res) {
          INNER JOIN stock_mgmt.invoice ii ON i.invid= ii.id
          INNER JOIN stock_mgmt.business b ON ms.bid=b.id
          WHERE inv_itemid =${data.id}`;
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
-    // if (where.length > 0) {
-    //     where = where.join(' AND ');
-    //     sqlquery += where;
-    // }
     console.log('hii', sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
@@ -363,24 +344,22 @@ async function editmodel_serial_no(req) {
 
 model_serial_no.post('/addmodel_serial_no', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.model_serial_noDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.model_serial_noDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await addmodel_serial_no(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
 });
 model_serial_no.post('/editmodel_serial_no', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.editmodel_serial_noDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.editmodel_serial_noDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await editmodel_serial_no(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
