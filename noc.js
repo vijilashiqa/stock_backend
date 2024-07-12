@@ -15,7 +15,10 @@ const device=require('./routes/device');
 const model_serial_no=require('./routes/model_serial_no');
 const hub=require('./routes/hub');
 const own_use=require('./routes/own_use');
+
+const prehandler=require('./routes/prehandler');
 const login=require('./routes/login');
+const department=require('./routes/department');
 const menurole=require('./routes/menurole');
 // Routes File Import End
 const cors = require('cors');
@@ -44,6 +47,8 @@ app.use(function (req, res, next) {
 });
 app.use(helmet({frameguard: { action: 'deny' }}));
 // API Method Start
+app.use('/login',login);
+app.use('/*',prehandler);
 
 app.use('/vendors',vendor);
 app.use('/location',location);
@@ -57,7 +62,8 @@ app.use('/device',device);
 app.use('/model_serial_no',model_serial_no);
 app.use('/hub',hub);
 app.use('/own_use',own_use);
-app.use('/login',login);
+
+app.use('/department',department)
 app.use('/menurole',menurole);
 // API Method End
 

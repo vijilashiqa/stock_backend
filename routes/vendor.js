@@ -23,17 +23,18 @@ async function addvendor(req) {
 				let checkvendor = await conn.query("SELECT COUNT(*) AS cnt FROM stock_mgmt.vendor WHERE vcompany = ?", [data.vcompany]);
 
 				if (checkvendor[0][0]['cnt'] == 0) {
-					let status = data.status == true ? 1 : 0;
+					// let status = data.status == true ? 1 : 0;
 
 					let addven = `INSERT INTO stock_mgmt.vendor SET
 					    bid=?,
                         vname = ?,
                         vcompany = ?,
                         vmobile = ?,
-                        vmail = ?
+                        vmail = ?,
+						cby=?
 						`;
 
-					addven = await conn.query(addven, [data.bid,data.vname, data.vcompany, data.vmobile, data.vmail]);
+					addven = await conn.query(addven, [data.bid,data.vname, data.vcompany, data.vmobile, data.vmail,jwtdata.id]);
 
 					if (addven[0]['affectedRows'] > 0) {
 						let vendorid = addven[0].insertId;
@@ -42,11 +43,11 @@ async function addvendor(req) {
 
 						for (let i = 0; i < data.stockinid.length; i++) {
 							let vcm = data.stockinid[i];
-							insertaddress.push([vendorid, vcm.gst_no, vcm.addrname, vcm.state, vcm.dist, vcm.pincode, vcm.address]);
+							insertaddress.push([vendorid, vcm.gst_no, vcm.addrname, vcm.state, vcm.dist, vcm.pincode, vcm.address, jwtdata.id]);
 						}
 						console.log('daaaatta', insertaddress);
 
-						let addvenadress = `INSERT INTO stock_mgmt.vendor_address(vid, gst_no, addrname, state, dist, pincode, address) VALUES ?`;
+						let addvenadress = `INSERT INTO stock_mgmt.vendor_address(vid, gst_no, addrname, state, dist, pincode, address,cby) VALUES ?`;
 						addvenadress = await conn.query(addvenadress, [insertaddress]);
 
 						if (addvenadress[0]['affectedRows'] == 0) {
@@ -56,10 +57,10 @@ async function addvendor(req) {
 
 						for (let i = 0; i < data.bankdetails.length; i++) {
 							let vb = data.bankdetails[i];
-							insertbank.push([vendorid, vb.bank, vb.vbankname, vb.vbacctno, vb.vbifsc]);
+							insertbank.push([vendorid, vb.bank, vb.vbankname, vb.vbacctno, vb.vbifsc,jwtdata.id]);
 						}
 
-						let addvendorbank = `INSERT INTO stock_mgmt.vendor_bank(vid, bank, vbname, vbacctno, vbifsc) VALUES ?`;
+						let addvendorbank = `INSERT INTO stock_mgmt.vendor_bank(vid, bank, vbname, vbacctno, vbifsc,cby) VALUES ?`;
 						addvendorbank = await conn.query(addvendorbank, [insertbank]);
 
 						if (addvendorbank[0]['affectedRows'] == 0) {
@@ -67,7 +68,7 @@ async function addvendor(req) {
 							await conn.rollback();
 						}
 
-						let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id = 'ADD VENDOR', `longtext` = 'DONE BY'";
+						let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD Vendor Details',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
 						sqllog = await conn.query(sqllog);
 
 						if (sqllog[0]['affectedRows'] > 0) {
@@ -154,6 +155,8 @@ vendors.post('/getvendoraddredit', function (req, res, err) {
 		sqlquery = `SELECT *  FROM stock_mgmt.vendor_address `, finalresult = [],
 		sqlqueryc = ` SELECT count(*) as cnt FROM stock_mgmt.vendor_address`,
 		data = req.body;
+
+		
 	if (data.id != '' && data.id != null) where.push(` vid= ${data.id} `);
 	where.push(`vastatus=1`);
 	if (where.length > 0) {
@@ -161,6 +164,10 @@ vendors.post('/getvendoraddredit', function (req, res, err) {
 		sqlquery += where;
 		sqlqueryc += where
 
+	}
+
+	if (data.hasOwnProperty('like') && data.like) {
+		sqlquery += (' AND addrname LIKE "%' + data.like + '%" ')
 	}
 	if (data.index != null) console.log('-----');
 	if (data.index != null && data.limit != null) sqlquery += ' LIMIT ' + data.index + ',' + data.limit;
@@ -194,12 +201,17 @@ vendors.post('/getvendorbankedit', function (req, res, err) {
 		data = req.body;
 	if (data.id != '' && data.id != null) where.push(` vid= ${data.id} `);
 	      where.push(`cbstatus=1`);
+
+
+
 	if (where.length > 0) {
 		where = ' WHERE   ' + where.join(' AND ');
 		sqlquery += where;
 		sqlqueryc += where
 
 	}
+
+	
 	if (data.index != null) console.log('-----');
 	if (data.index != null && data.limit != null) sqlquery += ' LIMIT ' + data.index + ',' + data.limit;
 	// console.log('getlist...', sqlquery);
@@ -237,6 +249,8 @@ vendors.post('/getvendoredit', function (req, res, err) {
 		sqlqueryc += where
 
 	}
+	
+	
 	if (data.index != null) console.log('-----');
 	if (data.index != null && data.limit != null) sqlquery += ' LIMIT ' + data.index + ',' + data.limit;
 	// console.log('getlist...', sqlquery);
@@ -277,7 +291,7 @@ vendors.post('/getbank', function (req, res) {
 	});
 });
 
-async function vendoraddrupdate(stockinid,conn,vendorId) {
+async function vendoraddrupdate(stockinid,conn,vendorId,jwtdata) {
 	return new Promise (async(resolve,reject)=>{
 	let errorArray=[],fstatus=false;
 	if(conn){
@@ -287,10 +301,10 @@ async function vendoraddrupdate(stockinid,conn,vendorId) {
 		if (vAddr.id != null && vAddr.id != '') {
 			// Update existing record for Vendor Address
 			let updateVendorAddress = `UPDATE stock_mgmt.vendor_address 
-				SET gst_no = ?, addrname = ?, state = ?, dist = ?, pincode = ?, address = ?, vastatus = ? 
+				SET gst_no = ?, addrname = ?, state = ?, dist = ?, pincode = ?, address = ?, vastatus = ? ,mby=?
 					 WHERE vid = ? AND id = ?`;
 
-			let updatedAddress = await conn.query(updateVendorAddress, [vAddr.gstno, vAddr.addresname, vAddr.state, vAddr.district, vAddr.pincode, vAddr.address, vAddr.vastatus, vAddr.vid, vAddr.id]);
+			let updatedAddress = await conn.query(updateVendorAddress, [vAddr.gstno, vAddr.addresname, vAddr.state, vAddr.district, vAddr.pincode, vAddr.address, vAddr.vastatus, jwtdata, vAddr.vid, vAddr.id]);
 		
 			if (updatedAddress[0]['affectedRows'] == 0) {
 				errorArray.push({ msg: "Error updating Vendor Address", error_code: 117 });
@@ -302,10 +316,10 @@ async function vendoraddrupdate(stockinid,conn,vendorId) {
 		} else {
 			// Insert new record for Vendor Address
 			let insertVendorAddress = `INSERT INTO stock_mgmt.vendor_address 
-			   (gst_no, addrname, state, dist, pincode, address, vastatus, vid) 
-				   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+			   (gst_no, addrname, state, dist, pincode, address, vastatus, mby,vid) 
+				   VALUES (?, ?, ?, ?, ?, ?, ?, ? ,?)`;
 
-			let insertedAddress = await conn.query(insertVendorAddress, [vAddr.gstno, vAddr.addresname, vAddr.state, vAddr.district, vAddr.pincode, vAddr.address, 1, vendorId ]);
+			let insertedAddress = await conn.query(insertVendorAddress, [vAddr.gstno, vAddr.addresname, vAddr.state, vAddr.district, vAddr.pincode, vAddr.address, 1,jwtdata, vendorId ]);
 			
 			if (insertedAddress[0]['affectedRows'] == 0) {
 				errorArray.push({ msg: "Error inserting new Vendor Address ", error_code: 116 });
@@ -325,7 +339,7 @@ async function vendoraddrupdate(stockinid,conn,vendorId) {
 });
 }
 
-async function vendorbankupdate(bankdetails,conn,vendorId) {
+async function vendorbankupdate(bankdetails,conn,vendorId,jwtdata) {
 	return new Promise (async(resolve,reject)=>{
 	let errorArray=[],fstatus=false;
 	if(conn){
@@ -335,10 +349,10 @@ async function vendorbankupdate(bankdetails,conn,vendorId) {
 	if (vBank.id != null && vBank.id != '') {
 			// Update existing record for Vendor Bank
 		let updateVendorBank = `UPDATE stock_mgmt.vendor_bank 
-		  SET bank = ?, vbname = ?, vbacctno = ?, vbifsc = ?, cbstatus = ? 
+		  SET bank = ?, vbname = ?, vbacctno = ?, vbifsc = ?, cbstatus = ? ,mby =?
 		   WHERE vid = ? AND id = ?`;
 
-		let updatedBank = await conn.query(updateVendorBank, [vBank.bank, vBank.vbname, vBank.vbacctno, vBank.vbifsc, vBank.vbstatus, vBank.vid, vBank.id]);
+		let updatedBank = await conn.query(updateVendorBank, [vBank.bank, vBank.vbname, vBank.vbacctno, vBank.vbifsc, vBank.vbstatus,jwtdata, vBank.vid, vBank.id]);
 		
 		if (updatedBank[0]['affectedRows'] == 0) {
 			errorArray.push({ msg: "Error updating Vendor Bank", error_code: 115 });
@@ -349,10 +363,10 @@ async function vendorbankupdate(bankdetails,conn,vendorId) {
 	
 		// Insert new record for Vendor Bank
 		let insertVendorBank = `INSERT INTO stock_mgmt.vendor_bank 
-				(bank, vbname, vbacctno, vbifsc, cbstatus, vid) 
+				(bank, vbname, vbacctno, vbifsc, cbstatus, vid,mby) 
 				 VALUES (?, ?, ?, ?, ?, ?)`;
 
-		let insertedBank = await conn.query(insertVendorBank, [vBank.bank, vBank.vbname, vBank.vbacctno, vBank.vbifsc, 1, vendorId ]);
+		let insertedBank = await conn.query(insertVendorBank, [vBank.bank, vBank.vbname, vBank.vbacctno, vBank.vbifsc, 1, vendorId ,jwtdata]);
 		
 		if (insertedBank[0]['affectedRows'] == 0) {
 			errorArray.push({ msg: "Error in inserting new Vendor Bank ", error_code: 114 });
@@ -395,24 +409,25 @@ async function vendoredit(req) {
 					vcompany = ?,
                     vname = ?,
                     vmobile = ?,
-                    vmail = ?
+                    vmail = ?,
+					mby=?
                     WHERE id = ?`;
 
-					let updatedVendor = await conn.query(updateVendor, [data.bid,data.vcompany,data.vname, data.vmobile, data.vmail, vendorId]);
+					let updatedVendor = await conn.query(updateVendor, [data.bid,data.vcompany,data.vname, data.vmobile, data.vmail,jwtdata.id, vendorId]);
 				
 					if (updatedVendor[0]['affectedRows'] > 0) {
 						// Update Vendor Address
 
 						// Inside the loop for updating Vendor Address
 						
-						let venaddr_res= await vendoraddrupdate(data.stockinid,conn,vendorId)
+						let venaddr_res= await vendoraddrupdate(data.stockinid,conn,vendorId,jwtdata.id)
                         
 						// Inside the loop for updating Vendor Bank
-						let venabank_res= await vendorbankupdate(data.bankdetails,conn,vendorId)
+						let venabank_res= await vendorbankupdate(data.bankdetails,conn,vendorId,jwtdata.id)
 
 					}
 
-					let sqlLog = "INSERT INTO stock_mgmt.activitylog SET table_id = 'EDIT VENDOR', `longtext` = 'DONE BY'";
+					let sqlLog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Vendor',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
 					sqlLog = await conn.query(sqlLog);
 
 					if (sqlLog[0]['affectedRows'] > 0) {

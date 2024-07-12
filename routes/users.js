@@ -332,13 +332,14 @@ async function addusers(req) {
                         mobile=${data.mobile},                 
                         address='${data.address}',
                         email='${data.email}',
-                        umenu='${insertdata.menurole}' 
+                        umenu='${insertdata.menurole}' ,
+                        cby=${jwtdata.id}
                         `;
 
                     console.log('ADD users Query: ', addmenurole);
                     addmenurole = await conn.query(addmenurole);
                     if (addmenurole[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD users',`longtext`='DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='Add user',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " User created Succesfully", err_code: 0 });
@@ -427,7 +428,7 @@ async function editusers(req, res) {
                     let result = await conn.query(sqlupdate, data);
                     console.log("result", result);
                     if (result[0]["affectedRows"] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT ROLE',`longtext`='DONE BY',cby=" + data.id;
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Role',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: "Edit Menu Role Succesfully Updated.", err_code: 0 });

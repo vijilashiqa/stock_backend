@@ -1,8 +1,6 @@
 
 //*******************model NUM***************//
 
-
-
 "use strict";
 var express = require('express'),
     compress = require('compression'),
@@ -10,9 +8,6 @@ var express = require('express'),
     pool = require('../connection/conn'),
 poolPromise = require('../connection/conn').poolp;
 const joiValidate = require('../schema/model');
-
-
-
 
 async function addmodel(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
@@ -31,15 +26,16 @@ async function addmodel(req) {
                                                                    makeid=${data.makeid},
                                                                    bid=${data.bid},
                                                                    deviceid=${data.deviceid},
-                                                                   modelname ='${data.modelname}'
+                                                                   modelname ='${data.modelname}',
+                                                                   cby=${jwtdata.id}
                                                                  `;
                     console.log('ADD model Query: ', addhd);
                     addhd = await conn.query(addhd);
                     if (addhd[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id=' model detail',`longtext`='DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD Model',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
-                            erroraray.push({ msg: " model Deatil Created Succesfully", err_code: 0 });
+                            erroraray.push({ msg: " Model Deatil Created Succesfully", err_code: 0 });
                             await conn.commit();
                         }
                     } else {
@@ -187,15 +183,13 @@ async function editmodel(req) {
                     makeid=${data.makeid},
                     bid=${data.bid},
                     deviceid=${data.deviceid},
-                     modelname='${data.modelname}'`;
-                    
-                    
-                   
+                     modelname='${data.modelname}',
+                     mby=${jwtdata.id}`;      
                     addhd += ' WHERE modelid =' + data.modelid
                     console.log('Edit Broadcast Query: ', addhd);
                     addhd = await conn.query(addhd);
                     if (addhd[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO  stock_mgmt.activitylog SET table_id='UPDATE model Deatil',`longtext`=' " + alog + " DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Model',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " model Deatil Updated Succesfully", err_code: 0 });
@@ -244,7 +238,6 @@ model.post('/editmodel', async (req, res) => {
     const validation = joiValidate.editmodeldataschema.validate(req.body);
     if (validation.error) {
         console.log(validation.error.details);
-        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
         return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
     }
     let result = await editmodel(req);

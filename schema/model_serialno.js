@@ -13,4 +13,4 @@ const model_serial_Data={
 
   module.exports.model_serial_noDataSchema = Joi.object().keys(model_serial_Data).options({ stripUnknown: true });  
   
-  module.exports.editown_useDataSchema = Joi.object().keys({model_serial_Data, mData}).options({ stripUnknown: true });
+  module.exports.editmodel_serial_noDataSchema = Joi.object().keys({model_serial_Data, mData}).options({ stripUnknown: true });

@@ -69,7 +69,8 @@ async function addinvoice(req) {
                         vaddrid=${data.vaddr},
                         vaddr='${checkven[0][0].addrname}',
                         vgstno='${checkven[0][0].gst_no}',
-                        gsttype=${data.gsttype}
+                        gsttype=${data.gsttype},
+                        cby=${jwtdata.id}
                         `
                     console.log((checkadd[0][0].bagstno).slice(0, 2), (checkven[0][0].gst_no).slice(0, 2));
                     if (data.gsttype == 1) {
@@ -102,7 +103,8 @@ async function addinvoice(req) {
                                         itemname='${itemname.toString().replace(/\[/g, '').replace(/\]/g, '')}', 
                                         modelid=${inv.modelid},               
                                         itemgst=${inv.itemgst},
-                                        itemamt=${inv.itemamt}
+                                        itemamt=${inv.itemamt},
+                                        cby=${jwtdata.id}
                                         
                                        `;
                                 if (inv.itemqty != null || inv.itemqty != '') addinvitem += `,itemqty=${inv.itemqty}`;
@@ -132,7 +134,7 @@ async function addinvoice(req) {
 
                         }
 
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADDED INVOICE DETAIL',`longtext`='DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD Invoice',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " Invoice Deatil Created Succesfully", err_code: 0 });
@@ -206,20 +208,54 @@ invoice.post('/listinvoice', function (req, res, err) {
     });
 });
 
-invoice.post('/getinvoice', function (req, res) {
+// invoice.post('/getinvoice', function (req, res) {
+//     pool.getConnection(function (err, conn) {
+//         if (err) {
+//             console.log(err);
+//         } else {
+//             var sql = conn.query(`select * from stock_mgmt.invoice  `, function (err, result) {
+//                 conn.release();
+//                 if (!err) {
+//                     res.end(JSON.stringify(result));
+//                 }
+//             });
+//         }
+//     });
+// });
+
+
+
+
+invoice.post('/getinvoice', function (req, res, err) {
+	
+    var data = req.body, sql, sqlquery = `select * from stock_mgmt.invoice  WHERE busid =${data.busid}`,
+        sqlqueryc = `SELECT COUNT(*) AS count from stock_mgmt.invoice  WHERE busid =${data.busid}`,finalresult = [];
+    console.log('-********************-', sqlquery);
     pool.getConnection(function (err, conn) {
-        if (err) {
-            console.log(err);
-        } else {
-            var sql = conn.query(`select * from stock_mgmt.invoice  `, function (err, result) {
-                conn.release();
+        if (!err) {
+            sql = conn.query(sqlquery, function (err, result) {
                 if (!err) {
-                    res.end(JSON.stringify(result));
+                    finalresult.push(result);
+
+					
+                    sql = conn.query(sqlqueryc, function (err, result) {
+                        conn.release();
+                        if (!err) {
+                            finalresult.push(result[0]);
+                            res.end(JSON.stringify(finalresult));
+                        }
+                    });
+
+
+					console.log("SQL@@@@@@@@@@@@2",sql.sql)
+                } else {
+                    conn.release();
                 }
             });
         }
     });
 });
+
 invoice.post('/getinvoice_item_edit', function (req, res, err) {
     var jwtdata = req.jwt_data, where = [], sql;
        var  sqlquery = `SELECT  i.iiid,i.busid, i.invid, i.itemqty, i.itemgst, i.itemamt, i.igst, i.sgst, i.cgst, i.itemstatus,i.modelid,m.modelname,
@@ -234,6 +270,9 @@ invoice.post('/getinvoice_item_edit', function (req, res, err) {
        stock_mgmt.make mk ON FIND_IN_SET(mk.makeid, m.makeid)
    INNER JOIN 
        stock_mgmt.device d ON FIND_IN_SET(d.deviceid, m.deviceid)`, finalresult = [];
+
+
+       
        var  sqlqueryc = ` SELECT count(*) as cnt FROM stock_mgmt.invoice_items i
        INNER JOIN 
        stock_mgmt.model m ON i.modelid = m.modelid
@@ -244,6 +283,12 @@ invoice.post('/getinvoice_item_edit', function (req, res, err) {
         data = req.body;
     if (data.id != '' && data.id != null) where.push(` invid= ${data.id} `);
     // if (data.id != '' && data.id != null) where.push(` iiid= ${data.id} `);
+
+    if (data.busid != '' && data.busid != null) where.push(` i.busid = ${data.busid} `);
+
+
+
+
     where.push(`itemstatus=1`);
     if (where.length > 0) {
         where = ' WHERE  ' + where.join(' AND ');
@@ -251,6 +296,13 @@ invoice.post('/getinvoice_item_edit', function (req, res, err) {
         sqlqueryc += where
 
     }
+
+
+    if (data.hasOwnProperty('like') && data.like) {
+        sqlquery += ' AND itemname LIKE "%' + data.like + '%" '
+    }
+
+
     sqlquery += ' GROUP BY  i.busid, i.invid, i.itemqty, i.itemgst, i.itemamt, i.igst, i.sgst, i.cgst, i.itemstatus';
     // sqlqueryc += ' GROUP BY  i.busid, i.invid, i.itemqty, i.itemgst, i.itemamt, i.igst, i.sgst, i.cgst, i.itemstatus';
     
@@ -320,6 +372,8 @@ invoice.post('/getinvoice_edit', function (req, res, err) {
         }
     });
 });
+
+
 invoice.post('/getmodel_edit', function (req, res, err) {
     var jwtdata = req.jwt_data, where = [], sql,
         sqlquery = `SELECT mk.makename,d.devicename,m.* FROM stock_mgmt.model m 
@@ -335,7 +389,9 @@ invoice.post('/getmodel_edit', function (req, res, err) {
         where = ' WHERE ' + where.join(' AND ');
         sqlquery += where;
         sqlqueryc += where
-
+    }
+    if (data.hasOwnProperty('like') && data.like) {
+        sqlquery += ' AND m.modelname LIKE "%' + data.like + '%" '
     }
     if (data.index != null) console.log('-----');
     if (data.index != null && data.limit != null) sqlquery += ' LIMIT ' + data.index + ',' + data.limit;
@@ -362,6 +418,8 @@ invoice.post('/getmodel_edit', function (req, res, err) {
         }
     });
 });
+
+
 
 async function editinvoice(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
@@ -480,7 +538,7 @@ async function editinvoice(req) {
                                 }
                             }
                         }
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='UPDATE INVOICE DETAIL',`longtext`='DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Invoice',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " Invoice Deatil Updated Succesfully", err_code: 0 });

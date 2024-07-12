@@ -1,21 +1,15 @@
 
-//*******************device NUM***************//
-
-
-
+//*******************department NUM***************//
 "use strict";
 var express = require('express'),
     compress = require('compression'),
-    device = express.Router(),
+    department = express.Router(),
     pool = require('../connection/conn'),
 poolPromise = require('../connection/conn').poolp;
- const joiValidate = require('../schema/device');
+const joiValidate = require('../schema/department');
 
-
-
-
-async function adddevice(req) {
-    console.log('Add device Data:', req.jwt_data);
+async function adddepartment(req) {
+    console.log('Add department  Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
         let conn = await poolPromise.getConnection();
@@ -23,22 +17,16 @@ async function adddevice(req) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.device WHERE devicename ='" + data.devicename + "' and bid ="+data.bid+"");
+                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.department WHERE depname ='" + data.depname + "' and busid ="+data.busid+"");
                 if (checkprofile[0][0]['cnt'] == 0) {
-                    let status = data.status == true ? 1 : 0;
-                    // data.addr = data.addr.replace("'", ' ');
-                    let addhd = `INSERT INTO stock_mgmt.device SET 
-                                                                   bid=${data.bid},
-                                                                   devicename ='${data.devicename}',
-                                                                   cby=${jwtdata.id}
-                                                                 `;
-                    console.log('ADD device Query: ', addhd);
-                    addhd = await conn.query(addhd);
-                    if (addhd[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD Device',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
+                    let adddep = `INSERT INTO stock_mgmt.department SET depname ='${data.depname}' ,busid =${data.busid}`;
+                    console.log('ADD Department Query: ', adddep);
+                    adddep = await conn.query(adddep);
+                    if (adddep[0]['affectedRows'] > 0) {
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD Department',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
-                            erroraray.push({ msg: " device Deatil Created Succesfully", err_code: 0 });
+                            erroraray.push({ msg: " Department Deatil Created Succesfully", err_code: 0 });
                             await conn.commit();
                         }
                     } else {
@@ -46,7 +34,7 @@ async function adddevice(req) {
                         await conn.rollback();
                     }
                 } else {
-                    erroraray.push({ msg: " Device Deatil ID Already Exists.", err_code: 56 });
+                    erroraray.push({ msg: " Department Deatil ID Already Exists.", err_code: 56 });
                     await conn.rollback();
                 }
             } catch (e) {
@@ -65,24 +53,12 @@ async function adddevice(req) {
         return resolve(erroraray);
     });
 }
-device.post('/listdevice', function (req, res, err) {
-    var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT d.deviceid,d.devicename,b.bname FROM `stock_mgmt`.device d'
-    + ' inner join stock_mgmt.business b on d.bid=b.id  ',
-        sqlqueryc = ' SELECT COUNT(*) AS count FROM `stock_mgmt`. device d '
-        + ' inner join stock_mgmt. business b on d.bid=b.id', finalresult = [],
+
+
+department.post('/listdepartment', function (req, res, err) {
+    var  sql, sqlquery = '  SELECT d.id,d.depname,d.busid,b.bname FROM stock_mgmt.department d LEFT JOIN stock_mgmt.business b ON b.id =d.busid   LIMIT ?,? ',
+        sqlqueryc = ' SELECT COUNT(*) AS count FROM stock_mgmt.department d LEFT JOIN stock_mgmt.business b ON b.id =d.busid ', finalresult = [],
         data = req.body;
-
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` device.hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` device.hdid= ${jwtdata.hdid} `);
-
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    //     sqlqueryc += where;
-    // }
-    sqlquery += ' LIMIT ?,? ';
-    console.log('test',sqlquery);
-    console.log(sqlqueryc);
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, [data.index, data.limit], function (err, result) {
@@ -105,40 +81,18 @@ device.post('/listdevice', function (req, res, err) {
     });
 });
 
-device.post('/selectdevice', function (req, res) {
+department.post('/selectdepartment', function (req, res) {
     var where = [], jwtdata = req.jwt_data, sql, data = req.body
-        , sqlquery = 'SELECT * FROM stock_mgmt.device';
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
-
-
-
-    if (data.bid != '' && data.bid != null) where.push(` bid = ${data.bid} `);
+        , sqlquery = 'SELECT id,depname FROM stock_mgmt.department';
+    if (data.busid != '' && data.busid != null) where.push(` busid = ${data.busid} `);
     if (where.length > 0) {
         where = ' WHERE' + where.join(' AND ');
         sqlquery += where;
     }
-
-
-
-
     if (data.hasOwnProperty('like') && data.like) {
-        sqlquery += ' AND devicename LIKE "%' + data.like + '%" '
+        sqlquery += ' AND depname LIKE "%' + data.like + '%" '
     }
-
-    // if (data.hasOwnProperty('device_id-') && data.device_id) {
-    //     sqlquery += ` AND device_id =${data.device_id}`;
-    // }
-    // if (data.hasOwnProperty('device_name') && data.device_name) {
-    //     sqlquery += ` AND device_name =${data.device_name}`;
-    // }
-    // if (data.hasOwnProperty('device_num') && data.device_num) {
-    //     sqlquery += ` AND device_num =${data.device_num}`;
-    // }
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    // }
+    console.log("depart like cmt",sqlquery);
     console.log('data', data)
     pool.getConnection(function (err, conn) {
         if (err) {
@@ -154,13 +108,18 @@ device.post('/selectdevice', function (req, res) {
     });
 });
 
-device.post('/getdevice', function (req, res) {
-    var data = req.body,
-        sql, sqlquery = `SELECT * FROM stock_mgmt.device WHERE deviceid =${data.deviceid}`;
+department.post('/getdepartment', function (req, res) {
+    var data = req.body, where = [], jwtdata = req.jwt_data,
+        sql, sqlquery = `SELECT * FROM stock_mgmt.department WHERE id =${data.id}`;
+    if (where.length > 0) {
+        where = where.join(' AND ');
+        sqlquery += where;
+    }
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, function (err, result) {
-                console.log('get device', sql.sql);
+                // console.log(id,"++++++++++");
+                console.log('get channel', sql.sql);
                 conn.release();
                 if (!err) {
                     res.end(JSON.stringify(result[0]));
@@ -172,7 +131,7 @@ device.post('/getdevice', function (req, res) {
 });
 
 
-async function editdevice(req) {
+async function editdepartment(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
@@ -181,20 +140,20 @@ async function editdevice(req) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.`device` WHERE devicename ='"+data.devicename+"' and  deviceid!=" + data.deviceid + "");
-             console.log("+++++++++++++++++++++++++++===",checkprofile[0].length);
+                let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.department WHERE depname ='"+data.depname+"' and  busid=" + data.busid + "");
+               console.log("---------department edit------------", checkprofile[0].length  , "===========", checkprofile.sql)
                 if (checkprofile[0].length == 0) {
                     let chs = checkprofile[0][0];
                     let status = data.status == true ? 1 : 0;
-                    let addhd = `UPDATE  stock_mgmt.device SET  bid=${data.bid},devicename='${data.devicename}', mby =${jwtdata.id}`;
-                     addhd += ' WHERE deviceid =' + data.deviceid
-                    console.log('Edit Broadcast Query: ', addhd);
-                    addhd = await conn.query(addhd);
-                    if (addhd[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Device',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
+                    let adddep = `UPDATE  stock_mgmt.department SET  depname='${data.depname}' ,busid =${data.busid}`;
+                    adddep += ' WHERE id =' + data.id
+                    console.log('Edit Broadcast Query: ', adddep);
+                    adddep = await conn.query(adddep);
+                    if (adddep[0]['affectedRows'] > 0) {
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Depatrment',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
-                            erroraray.push({ msg: " Device Deatil Updated Succesfully", err_code: 0 });
+                            erroraray.push({ msg: " Department Deatil Updated Succesfully", err_code: 0 });
                             await conn.commit();
                         }
                     } else {
@@ -202,7 +161,7 @@ async function editdevice(req) {
                         await conn.rollback();
                     }
                 } else {
-                    erroraray.push({ msg: "Device Already exists.", err_code: 243 });
+                    erroraray.push({ msg: "department Already exists.", err_code: 243 });
                     await conn.rollback();
                 }
             } catch (e) {
@@ -223,27 +182,27 @@ async function editdevice(req) {
     });
 }
 
-device.post('/adddevice', async (req, res) => {
+department.post('/adddepartment', async (req, res) => {
     req.setTimeout(864000000);
-    const validation = joiValidate.deviceDataSchema.validate(req.body);
+    const validation = joiValidate.departmentDataSchema.validate(req.body);
     if (validation.error) {
         console.log(validation.error.details);
         // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
         return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
     }
-    let result = await adddevice(req);
+    let result = await adddepartment(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
 });
-device.post('/editdevice', async (req, res) => {
+department.post('/editdepartment', async (req, res) => {
     req.setTimeout(864000000);
-    const validation = joiValidate.editdeviceDataSchema.validate(req.body);
+    const validation = joiValidate.editdepartmentDataSchema.validate(req.body);
     if (validation.error) {
         console.log(validation.error.details);
         // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
         return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
     }
-    let result = await editdevice(req);
+    let result = await editdepartment(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
 
@@ -251,4 +210,4 @@ device.post('/editdevice', async (req, res) => {
 
 
 
-module.exports = device;
+module.exports = department;

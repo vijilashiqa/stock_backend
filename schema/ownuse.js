@@ -8,9 +8,9 @@ const Joi = require('joi');
 const modelData={
 
     bid:Joi.number().integer().required().label('Business Name is Required'),
-    itemname:Joi.number().integer().required().label('Make Name is Required'),
-    deviceid:Joi.number().integer().required().label('Device ID is Required'),
-    modelname:Joi.string().required().label('Model Name is Required'),
+    depid:Joi.number().integer().required().label('Department  Name is Required'),
+    itemname:Joi.number().integer().required().label('item  Name is Required'),
+    // hubid:Joi.number().integer().required().label('HUB Name is Required'),
 
  }
 
@@ -20,4 +20,4 @@ const modelData={
 
   module.exports.own_useDataSchema = Joi.object().keys(modelData).options({ stripUnknown: true });  
   
-  module.exports.editmodeldataschema = Joi.object().keys({modelData, mData}).options({ stripUnknown: true });
+  module.exports.editown_useDataSchema = Joi.object().keys({modelData, mData}).options({ stripUnknown: true });

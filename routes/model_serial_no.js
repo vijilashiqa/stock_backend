@@ -59,14 +59,15 @@ async function addmodel_serial_no(req) {
                                 SET bid=${data.bid},
                                     inv_itemid=${data.itemname},
                                     modelid=(SELECT modelid FROM stock_mgmt.invoice_items WHERE iiid=${data.itemname}),
-                                    serial_num='${msno.serialno}'
+                                    serial_num='${msno.serialno}',
+                                    cby=${jwtData.id}
                             `;
                          
                         console.log('ADD operator Query: ', addsno);
                         let addsnoResult = await conn.query(addsno);
 
                         if (addsnoResult[0].affectedRows > 0) {
-                            let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='Added Serail_Num',`longtext`='DONE BY'";
+                            let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD Serial NO',`longtext`='DONE BY',urole=" + jwtData.urole + ", cby=" + jwtData.id
 
 
                             let sqllogResult = await conn.query(sqllog);
@@ -220,7 +221,7 @@ model_serial_no.post('/getmodel_serial_no', function (req, res) {
          INNER JOIN stock_mgmt.invoice ii ON i.invid= ii.id
          INNER JOIN stock_mgmt.business b ON ms.bid=b.id
          WHERE inv_itemid =${data.id}`;
-    console.log('hii', sqlquery);
+    console.log('------------hii================', sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, function (err, result) {
@@ -267,11 +268,11 @@ model_serial_no.post('/getserial_no', function (req, res) {
 
 
 async function editmodel_serial_no(req) {
-    console.log('Edit User Data:', req.jwt_data);
+   
     return new Promise(async (resolve, reject) => {
         var errorArray = [], data = req.body, jwtData = req.jwt_data;
         let conn;
-
+        console.log('Edit User Data:', data);
         conn = await poolPromise.getConnection();
         if (!conn) {
             errorArray.push({ msg: 'Unable to establish a database connection.', err_code: 500 });
@@ -283,33 +284,29 @@ async function editmodel_serial_no(req) {
             await conn.beginTransaction();
             try {
                 let msno = data.serial_num[i];
-
-
                 let uniqueCheck = await conn.query(`
                             SELECT *
                             FROM stock_mgmt.model_serial_num
-                            WHERE serial_num = '${msno.serialno}' AND model_sid= ${msno.id}
+                            WHERE serial_num != '${msno.serialno}' AND model_sid = ${msno.id}
                         `);
-
-                if (uniqueCheck[0].length == 0) {
-
-
+                        console.log("unique check in the row", uniqueCheck[0].length);
+                if (uniqueCheck[0].length < 2) {
                     let addsno = `
                                  UPDATE stock_mgmt.model_serial_num
                                 SET bid=${data.bid},
                                     inv_itemid=${data.itemname},
-                                    serial_num='${msno.serialno}'
+                                    serial_num='${msno.serialno}',
+                                    mby=${jwtData.id}
                             `;
                     addsno += ' WHERE model_sid =' + msno.id
+
+                    
                     console.log('ADD operator Query: ', addsno);
                     let addsnoResult = await conn.query(addsno);
 
                     if (addsnoResult[0].affectedRows > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='Added Serail_Num',`longtext`='DONE BY'";
-
-
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Serial NO',`longtext`='DONE BY',urole=" + jwtData.urole + ", cby=" + jwtData.id;
                         let sqllogResult = await conn.query(sqllog);
-
                         if (sqllogResult[0].affectedRows > 0) {
                             errorArray.push({ msg: "Serial Number Added Successfully", err_code: 0 });
                             await conn.commit();
@@ -402,7 +399,7 @@ model_serial_no.post('/selectqty', function (req, res) {
     //     where = ' WHERE' + where.join(' AND ');
     //     sqlquery += where;
     // }
-    console.log('data', data)
+    console.log('--------------queary count -------------', sqlquery)
     pool.getConnection(function (err, conn) {
         if (err) {
             console.log(err);

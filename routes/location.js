@@ -8,7 +8,7 @@ const joiValidate = require('../schema/location');
 
 //state//
 async function addstate(req) {
-    // console.log('Add State', req.body);
+     console.log('Add State', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
         let conn = await poolPromise.getConnection();
@@ -19,11 +19,12 @@ async function addstate(req) {
                 let checksate = await conn.query(`SELECT COUNT(*)cnt FROM stock_mgmt.state WHERE state_name='${data.state_name}' `);
                 if (checksate[0][0]['cnt'] == 0) {
                     let addstate = `INSERT INTO stock_mgmt.state SET
-                    state_name='${data.state_name}'                  
+                    state_name='${data.state_name}',
+                    created_by =${jwtdata.id}
                     `;
                     addstate = await conn.query(addstate)
                     if (addstate[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD STATE',`longtext`='DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD State',`longtext`='DONE BY' , cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " State has Created Succesfully", err_code: 0 });
@@ -122,7 +123,7 @@ location.post('/getstate', function (req, res, err) {
     pool.getConnection(function (err, conn) {
         let data = req.body, sqlquery = 'SELECT state_pk ,state_name  FROM stock_mgmt.state'
         if (data.hasOwnProperty('like') && data.like) {
-            sqlquery += 'WHERE state_name LIKE "%' + data.like + '%" '
+            sqlquery += ' WHERE state_name LIKE "%' + data.like + '%" '
         }
         console.log('state',sqlquery);
         if (!err) {
@@ -155,7 +156,7 @@ async function editstate(req) {
                     console.log('Edit Broadcast Query: ', editstate);
                     editstate = await conn.query(editstate);
                     if (editstate[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='UPDATE STATE',`longtext`=' " + alog + " DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT State',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " State Updated Succesfully", err_code: 0 });
@@ -200,7 +201,7 @@ location.post('/editstate', async (req, res) => {
 });
 //Dist???//////////////////////////////////////
 async function adddist(req) {
-    console.log('Add State', req.body);
+    console.log('Add State', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
         let conn = await poolPromise.getConnection();
@@ -213,11 +214,13 @@ async function adddist(req) {
                 if (checksate[0][0]['cnt'] == 0) {
                     let adddist = `INSERT INTO stock_mgmt.district SET
                     district_name='${data.district_name}',
-                    state_fk=${data.state_fk}                  
+                    state_fk=${data.state_fk} ,
+                    
+                    created_by =${jwtdata.id}
                     `;
                     adddist = await conn.query(adddist)
                     if (adddist[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD DISTRICT',`longtext`='DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD District',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " District has Created Succesfully", err_code: 0 });
@@ -322,7 +325,7 @@ location.post('/getdistrict', function (req, res, err) {
             where.push(' state_fk =' + data.state_fk)
         }
         if (data.hasOwnProperty('like') && data.like) {
-            sqlquery += ' district_name LIKE "%' + data.like + '%" '
+           where.push (' district_name LIKE "%' + data.like + '%" ')
         }
         if (where.length > 0) {
             where = ' WHERE ' + where.join(' AND ');
@@ -352,13 +355,15 @@ async function editdistrict(req) {
                 console.log(checkprofile[0].length);
                 if (checkprofile[0].length == 0) {
                     let editdistrict = `UPDATE  stock_mgmt.district SET district_name='${data.district_name}',
-                    state_fk=${data.state_fk}`;
+                    state_fk=${data.state_fk},
+                    modified_by =${jwtdata.id}
+                    `;
 
                     editdistrict += ' WHERE district_pk =' + data.district_pk
                     console.log('Edit Broadcast Query: ', editdistrict);
                     editdistrict = await conn.query(editdistrict);
                     if (editdistrict[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='UPDATE district',`longtext`=' " + alog + " DONE BY'";
+                        let sqllog ="INSERT INTO stock_mgmt.activitylog SET table_id='EDIT District',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " district Updated Succesfully", err_code: 0 });

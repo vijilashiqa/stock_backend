@@ -4,18 +4,18 @@ var express = require('express'),
     business = express.Router(),
     pool = require('../connection/conn'),
     poolPromise = require('../connection/conn').poolp;
-// const joiValidate = require('../schema/business');
+const joiValidate = require('../schema/business');
 
 async function addbusiness(req) {
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+		console.log("add business log jwt ", jwtdata);
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('channel Data', data);
                 let checkbusiness = await conn.query("SELECT COUNT(*) AS cnt FROM stock_mgmt.business WHERE bname = ?", [data.bname]);
-
                 if (checkbusiness[0][0]['cnt'] == 0) {
                     let addbusines = `INSERT INTO stock_mgmt.business SET
                         bname = ?,
@@ -49,10 +49,10 @@ async function addbusiness(req) {
 
                         for (let i = 0; i < data.bankdetails.length; i++) {
                             let ba = data.bankdetails[i];
-                            insertbank.push([businessid, ba.bank, ba.bbname, ba.bbacctno, ba.bbifsc]);
+                            insertbank.push([businessid, ba.bank, ba.bbname, ba.bbacctno, ba.bbifsc, jwtdata.id]);
                         }
 
-                        let addbusinesdorbank = `INSERT INTO stock_mgmt.business_bank(bid, bank, bbname, bbacctno, bbifsc) VALUES ?`;
+                        let addbusinesdorbank = `INSERT INTO stock_mgmt.business_bank(bid, bank, bbname, bbacctno, bbifsc,cby) VALUES ?`;
                         addbusinesdorbank = await conn.query(addbusinesdorbank, [insertbank]);
 
                         if (addbusinesdorbank[0]['affectedRows'] == 0) {
@@ -60,7 +60,7 @@ async function addbusiness(req) {
                             await conn.rollback();
                         }
 
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id = 'ADD BUSINESS', `longtext` = 'DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD Business',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
 
                         if (sqllog[0]['affectedRows'] > 0) {
@@ -98,12 +98,12 @@ async function addbusiness(req) {
 
 business.post('/addbusiness', async (req, res) => {
     req.setTimeout(864000000);
-	// const validation = joiValidate.bussdetDataSchema.validate(req.body);
-	// if (validation.error) {
-	//     console.log(validation.error.details);
-	//     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-	//     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-	// }
+	const validation = joiValidate.bussdetDataSchema.validate(req.body);
+	if (validation.error) {
+	    console.log(validation.error.details);
+	    // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+	    return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+	}
     let result = await addbusiness(req);
     console.log('process', result);
     res.end(JSON.stringify(result));
@@ -143,14 +143,20 @@ business.post('/listbusiness', function (req, res, err) {
 
 
 business.post('/getbank', function (req, res, err) {
-    var sql, sqlquery = `SELECT * FROM stock_mgmt.bank`,
-        sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.bank`, finalresult = [];
-    console.log('-------------------', sqlquery);
+	
+    var data = req.body, sql, sqlquery = `SELECT * FROM stock_mgmt.bank`,
+        sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.bank`,finalresult = [];
+		if (data.hasOwnProperty('like') && data.like) {
+			sqlquery += ' WHERE bname LIKE "%' + data.like + '%" '
+		}
+    console.log('-********************-', sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, function (err, result) {
                 if (!err) {
                     finalresult.push(result);
+
+					
                     sql = conn.query(sqlqueryc, function (err, result) {
                         conn.release();
                         if (!err) {
@@ -158,6 +164,9 @@ business.post('/getbank', function (req, res, err) {
                             res.end(JSON.stringify(finalresult));
                         }
                     });
+
+
+					console.log("SQL@@@@@@@@@@@@2",sql.sql)
                 } else {
                     conn.release();
                 }
@@ -172,6 +181,9 @@ business.post('/getbusinessaddredit', function (req, res, err) {
 		sqlquery = `SELECT *  FROM stock_mgmt.business_address `, finalresult = [],
 		sqlqueryc = ` SELECT count(*) as cnt FROM stock_mgmt.business_address`,
 		data = req.body;
+
+
+
 	if (data.id != '' && data.id != null) where.push(` bid= ${data.id} `);
 	where.push(`bastatus=1`);
 	if (where.length > 0) {
@@ -180,6 +192,13 @@ business.post('/getbusinessaddredit', function (req, res, err) {
 		sqlqueryc += where
 
 	}
+
+
+	if (data.hasOwnProperty('like') && data.like) {
+		sqlquery += ' and baaddrname LIKE "%' + data.like + '%" '
+	}
+
+
 	if (data.index != null) console.log('-----');
 	if (data.index != null && data.limit != null) sqlquery += ' LIMIT ' + data.index + ',' + data.limit;
 	// console.log('getlist...', sqlquery);
@@ -293,6 +312,12 @@ business.post('/getbusiness', function (req, res, err) {
 		sqlqueryc += where
 
 	}
+
+	if (data.hasOwnProperty('like') && data.like) {
+		sqlquery += 'WHERE bname LIKE "%' + data.like + '%" '
+	}
+
+
 	if (data.index != null) console.log('-----');
 	if (data.index != null && data.limit != null) sqlquery += ' LIMIT ' + data.index + ',' + data.limit;
 	// console.log('getlist...', sqlquery);
@@ -369,7 +394,7 @@ async function businessaddrupdate(stockinid,conn,businessId) {
 });
 }
 
-async function businessbankupdate(bankdetails,conn,businessId) {
+async function businessbankupdate(bankdetails,conn,businessId,jwt) {
 	return new Promise (async(resolve,reject)=>{
 	let errorArray=[],fstatus=false;
 	if(conn){
@@ -379,9 +404,12 @@ async function businessbankupdate(bankdetails,conn,businessId) {
 	if (bBank.id != null && bBank.id != '') {
 			// Update existing record for business Bank
 		let updatebusinessBank = `UPDATE stock_mgmt.business_bank 
-		  SET bank = ?, bbname = ?, bbacctno = ?, bbifsc = ?, bstatus = ? 
+		  SET bank = ?, bbname = ?, bbacctno = ?, bbifsc = ?, bstatus = ? ,  mby =?
 		   WHERE bid = ? AND id = ?`;
-		let updatedBank = await conn.query(updatebusinessBank, [bBank.bank, bBank.bbname, bBank.bbacctno, bBank.bbifsc, bBank.bstatus, bBank.bid, bBank.id]);		
+		let updatedBank = await conn.query(updatebusinessBank, [bBank.bank, bBank.bbname, bBank.bbacctno, bBank.bbifsc, bBank.bstatus,jwt, bBank.bid, bBank.id]);		
+	console.log("update the bank",updatedBank);
+	console.log("business edit data cbt++++++++++++++++", jwt)
+
 		if (updatedBank[0]['affectedRows'] == 0) {
 			errorArray.push({ msg: "Error updating business Bank", error_code: 115 });
 			await conn.rollback();
@@ -454,11 +482,14 @@ async function businessedit(req) {
 						let businessaddr_res= await businessaddrupdate(data.stockinid,conn,businessId)
                         
 						// Inside the loop for updating business Bank
-						let businessbank_res= await businessbankupdate(data.bankdetails,conn,businessId)
+						let businessbank_res= await businessbankupdate(data.bankdetails,conn,businessId,jwtdata.id)
+
+
+						console.log("bank-----------------------------------===========-----------------",businessaddr_res);
 
 					}
 
-					let sqlLog = "INSERT INTO stock_mgmt.activitylog SET table_id = 'EDIT BUSINESS', `longtext` = 'DONE BY'";
+					let sqlLog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Business',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
 					sqlLog = await conn.query(sqlLog);
 
 					if (sqlLog[0]['affectedRows'] > 0) {
@@ -490,11 +521,11 @@ async function businessedit(req) {
 
 business.post('/businessedit', async (req, res) => {
 	req.setTimeout(864000000);
-	// const validation = joiValidate.editbussdetDataSchema.validate(req.body);
-	// if (validation.error) {
-	//     console.log(validation.error.details);
-	//     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-	// }
+	const validation = joiValidate.editbussdetDataSchema.validate(req.body);
+	if (validation.error) {
+	    console.log(validation.error.details);
+	    return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+	}
 	let result = await businessedit(req);
 	console.log("Process Completed", result);
 	res.end(JSON.stringify(result));

@@ -14,6 +14,7 @@ const poolPromise = require('../connection/conn').poolp;
 
 async function account(data) {
     console.log("Login Data", data)
+    console.log("request data", data.jwtdata);
     return new Promise(async (resolve, reject) => {
         var sqlquery, loginid, pwd, erroraray = [], refresh_token;
         let conn = await poolPromise.getConnection();
@@ -34,29 +35,31 @@ async function account(data) {
                         console.log('Userdetails', userDet)
                         let session_id = generateRondomSting(), token, updatetoken;
                         try {
-                            // let custid =userDet.role==111?userDet.id:0;
                             token = await jwt.sign({
-                                id: userDet.id, loginid: userDet.loginid,fname:userDet.fname, email: userDet.email, mobile: userDet.mobile,umenu:userDet.umenu,
+                                id: userDet.id, loginid: userDet.loginid,fname:userDet.fname, email: userDet.email, mobile: userDet.mobile,umenu:userDet.umenu,bid:userDet.bid,
                                 urole:userDet.urole,session_id: session_id,
                             },
                                 privateKey, { algorithm: 'HS512', expiresIn: tokenExpireTime });
                                 refresh_token = await jwt.sign({ id: userDet.id, loginid: userDet.loginid, session_id: session_id ,urole:userDet.urole,umenu:userDet.umenu,},
                                 privateKey, { algorithm: 'HS512', expiresIn: refreshTokenExpireTime });
+
+
+                                console.log("token @@@@@@@@@@@",token);
+
                         } catch (e) {
                             erroraray.push({ msg: "Please Try After Sometimes", status: 0, error_msg: '48' });
                             return;
                         }
                         let user_details = {
-                            id: userDet.id, loginid: userDet.loginid,fname:userDet.fname, email: userDet.email, mobile: userDet.mobile,umenu:userDet.umenu,
+                            id: userDet.id, loginid: userDet.loginid,fname:userDet.fname, email: userDet.email, mobile: userDet.mobile,umenu:userDet.umenu,bid:userDet.bid,
                                 urole:userDet.urole
-
                         }
                          console.log(token, "tokennnnnnnnnnnnnn");
                          console.log('refressss',refresh_token);
                          console.log('usertype',userDet.urole);
-        
-                            updatetoken = " UPDATE stock_mgmt.users set `token`='" + token + "', `refresh_token`='" + refresh_token + "' where id=" + userDet.id;
-                        
+
+
+                        updatetoken = " UPDATE stock_mgmt.users set `token`='" + token + "', `refresh_token`='" + refresh_token + "' where id=" + userDet.id;
                         console.log('updatetoken', updatetoken);
                         updatetoken = await conn.query(updatetoken);
                         if (updatetoken[0]['affectedRows'] != 0) {

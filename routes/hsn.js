@@ -1,18 +1,12 @@
 
 //*******************HSN NUM***************//
-
-
-
 "use strict";
 var express = require('express'),
     compress = require('compression'),
     hsn = express.Router(),
     pool = require('../connection/conn'),
 poolPromise = require('../connection/conn').poolp;
-// const joiValidate = require('../schema/hsn');
-
-
-
+const joiValidate = require('../schema/hsn');
 
 async function addhsn(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
@@ -25,16 +19,12 @@ async function addhsn(req) {
                 console.log('Data', data);
                 let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.hsn WHERE mhsn ='" + data.mhsn + "'");
                 if (checkprofile[0][0]['cnt'] == 0) {
-                    let status = data.status == true ? 1 : 0;
-                    // data.addr = data.addr.replace("'", ' ');
-                    let addhd = `INSERT INTO stock_mgmt.hsn SET 
-                                                                   
-                                                                   mhsn ='${data.mhsn}'
-                                                                 `;
+                    // let status = data.status == true ? 1 : 0;
+                    let addhd = `INSERT INTO stock_mgmt.hsn SET mhsn ='${data.mhsn}',cby=${jwtdata.id}`;
                     console.log('ADD Hsn Query: ', addhd);
                     addhd = await conn.query(addhd);
                     if (addhd[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id=' hsn detail',`longtext`='DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD HSN',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " HSN Deatil Created Succesfully", err_code: 0 });
@@ -68,16 +58,6 @@ hsn.post('/listhsn', function (req, res, err) {
     var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT id,mhsn FROM `stock_mgmt`.hsn  LIMIT ?,? ',
         sqlqueryc = ' SELECT COUNT(*) AS count FROM `stock_mgmt`. hsn ', finalresult = [],
         data = req.body;
-
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hsn.hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hsn.hdid= ${jwtdata.hdid} `);
-
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    //     sqlqueryc += where;
-    // }
-    // sqlquery += ' LIMIT ?,? ';
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, [data.index, data.limit], function (err, result) {
@@ -103,19 +83,6 @@ hsn.post('/listhsn', function (req, res, err) {
 hsn.post('/selecthsn', function (req, res) {
     var where = [], jwtdata = req.jwt_data, sql, data = req.body
         , sqlquery = 'SELECT id,mhsn FROM stock_mgmt.hsn';
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
-
-
-    // if (data.hasOwnProperty('hsn_id-') && data.hsn_id) {
-    //     sqlquery += ` AND hsn_id =${data.hsn_id}`;
-    // }
-    // if (data.hasOwnProperty('hsn_name') && data.hsn_name) {
-    //     sqlquery += ` AND hsn_name =${data.hsn_name}`;
-    // }
-    // if (data.hasOwnProperty('hsn_num') && data.hsn_num) {
-    //     sqlquery += ` AND hsn_num =${data.hsn_num}`;
-    // }
     if (where.length > 0) {
         where = ' WHERE' + where.join(' AND ');
         sqlquery += where;
@@ -173,7 +140,7 @@ async function edithsn(req) {
                 if (checkprofile[0].length == 0) {
                     let chs = checkprofile[0][0];
                     let status = data.status == true ? 1 : 0;
-                    let addhd = `UPDATE  stock_mgmt.hsn SET  mhsn='${data.mhsn}'`;
+                    let addhd = `UPDATE  stock_mgmt.hsn SET  mhsn='${data.mhsn}',mby=${jwtdata.id}`;
                     
                     
                    
@@ -181,7 +148,7 @@ async function edithsn(req) {
                     console.log('Edit Broadcast Query: ', addhd);
                     addhd = await conn.query(addhd);
                     if (addhd[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO  stock_mgmt.activitylog SET table_id='UPDATE HSN Deatil',`longtext`=' " + alog + " DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT HSN',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " HSN Deatil Updated Succesfully", err_code: 0 });
@@ -215,24 +182,24 @@ async function edithsn(req) {
 
 hsn.post('/addhsn', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.hsnDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.hsnDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await addhsn(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
 });
 hsn.post('/edithsn', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.edithsnDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.edithsnDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await edithsn(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));

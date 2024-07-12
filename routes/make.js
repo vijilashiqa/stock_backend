@@ -9,7 +9,7 @@ var express = require('express'),
     make = express.Router(),
     pool = require('../connection/conn'),
 poolPromise = require('../connection/conn').poolp;
-// const joiValidate = require('../schema/make');
+const joiValidate = require('../schema/make');
 
 
 
@@ -18,6 +18,7 @@ async function addmake(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        // console.log("request daat",data);
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -29,12 +30,13 @@ async function addmake(req) {
                     // data.addr = data.addr.replace("'", ' ');
                     let addhd = `INSERT INTO stock_mgmt.make SET 
                                                                    bid=${data.bid},
-                                                                   makename ='${data.makename}'
+                                                                   makename ='${data.makename}',
+                                                                   cby=${jwtdata.id}
                                                                  `;
-                    console.log('ADD Hsn Query: ', addhd);
+                    // console.log('ADD Hsn Query: ', addhd);
                     addhd = await conn.query(addhd);
                     if (addhd[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id=' make detail',`longtext`='DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='ADD MAKE',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id;
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " Make Deatil Created Succesfully", err_code: 0 });
@@ -105,10 +107,24 @@ make.post('/listmake', function (req, res, err) {
 
 make.post('/selectmake', function (req, res) {
     var where = [], jwtdata = req.jwt_data, sql, data = req.body
-        , sqlquery = 'SELECT * FROM stock_mgmt.make';
+        , sqlquery = 'SELECT * FROM stock_mgmt.make ';
     // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hdid= ${data.hdid} `);
     // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
 
+
+    if (data.bid != '' && data.bid != null) where.push(` bid = ${data.bid} `);
+    if (where.length > 0) {
+        where = ' WHERE' + where.join(' AND ');
+        sqlquery += where;
+    }
+
+
+    if (data.hasOwnProperty('like') && data.like) {
+        sqlquery += ' AND makename LIKE "%' + data.like + '%" '
+    }
+
+
+    
 
     // if (data.hasOwnProperty('make_id-') && data.make_id) {
     //     sqlquery += ` AND make_id =${data.make_id}`;
@@ -116,14 +132,13 @@ make.post('/selectmake', function (req, res) {
     // if (data.hasOwnProperty('make_name') && data.make_name) {
     //     sqlquery += ` AND make_name =${data.make_name}`;
     // }
-    // if (data.hasOwnProperty('make_num') && data.make_num) {
-    //     sqlquery += ` AND make_num =${data.make_num}`;
+    
+    
+    // if (where.length > 0) {
+    //     where = ' WHERE' + where.join(' AND ');
+    //     sqlquery += where;
     // }
-    if (where.length > 0) {
-        where = ' WHERE' + where.join(' AND ');
-        sqlquery += where;
-    }
-    console.log('data', data)
+    console.log('data ###########', sqlquery)
     pool.getConnection(function (err, conn) {
         if (err) {
             console.log(err);
@@ -164,9 +179,11 @@ make.post('/getmake', function (req, res) {
 
 
 async function editmake(req) {
-    console.log('Add Broadcaster Data:', req.jwt_data);
+    // console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
+
+        
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -176,15 +193,12 @@ async function editmake(req) {
                 if (checkprofile[0].length == 0) {
                     let chs = checkprofile[0][0];
                     let status = data.status == true ? 1 : 0;
-                    let addhd = `UPDATE  stock_mgmt.make SET bid=${data.bid}, makename='${data.makename}'`;
-                    
-                    
-                   
+                    let addhd = `UPDATE  stock_mgmt.make SET bid=${data.bid}, makename='${data.makename}', mby=${jwtdata.id}`;
                     addhd += ' WHERE makeid =' + data.makeid
-                    console.log('Edit Broadcast Query: ', addhd);
+                    // console.log('Edit Broadcast Query: ', addhd);
                     addhd = await conn.query(addhd);
                     if (addhd[0]['affectedRows'] > 0) {
-                        let sqllog = "INSERT INTO  stock_mgmt.activitylog SET table_id='UPDATE Make Deatil',`longtext`=' " + alog + " DONE BY'";
+                        let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT make',`longtext`='DONE BY',urole=" + jwtdata.urole + ", cby=" + jwtdata.id
                         sqllog = await conn.query(sqllog);
                         if (sqllog[0]['affectedRows'] > 0) {
                             erroraray.push({ msg: " Make Deatil Updated Succesfully", err_code: 0 });
@@ -218,24 +232,24 @@ async function editmake(req) {
 
 make.post('/addmake', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.makeDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.makeDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await addmake(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));
 });
 make.post('/editmake', async (req, res) => {
     req.setTimeout(864000000);
-    // const validation = joiValidate.editmakeDataSchema.validate(req.body);
-    // if (validation.error) {
-    //     console.log(validation.error.details);
-    //     // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
-    //     return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
-    // }
+    const validation = joiValidate.editmakeDataSchema.validate(req.body);
+    if (validation.error) {
+        console.log(validation.error.details);
+        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
+        return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
+    }
     let result = await editmake(req);
     console.log("Process Completed", result);
     res.end(JSON.stringify(result));

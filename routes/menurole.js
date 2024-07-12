@@ -177,9 +177,6 @@ menurole.post('/addusers', async (req, res) => {
         return new Promise(async (resolve, reject) => {
             let data = req.body, jwtdata = req.jwt_data, conn, erroraray = [], insertdata = { menurole: JSON.stringify(data.menurole), };
             try {
-                let hdid = '';
-                // if (jwtdata.role > 777 && data.hdid != null && data.hdid != '') hdid = data.hdid;
-                // if (jwtdata.role <= 777) hdid = jwtdata.hdid;
                 conn = await poolPromise.getConnection();
                 if (conn) {
                     await conn.beginTransaction();
