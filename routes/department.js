@@ -10,16 +10,18 @@ const joiValidate = require('../schema/department');
 
 async function adddepartment(req) {
     console.log('Add department  Data:', req.jwt_data);
+
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.department WHERE depname ='" + data.depname + "' and busid ="+data.busid+"");
+                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.department WHERE depname ='" + data.depname + "' and busid ="+bid+"");
                 if (checkprofile[0][0]['cnt'] == 0) {
-                    let adddep = `INSERT INTO stock_mgmt.department SET depname ='${data.depname}' ,busid =${data.busid}`;
+                    let adddep = `INSERT INTO stock_mgmt.department SET depname ='${data.depname}' ,busid =${bid}`;
                     console.log('ADD Department Query: ', adddep);
                     adddep = await conn.query(adddep);
                     if (adddep[0]['affectedRows'] > 0) {
@@ -135,17 +137,16 @@ async function editdepartment(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.department WHERE depname ='"+data.depname+"' and  busid=" + data.busid + "");
-               console.log("---------department edit------------", checkprofile[0].length  , "===========", checkprofile.sql)
+                let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.department WHERE depname ='"+data.depname+"' and  busid !=" + bid + "");
+               console.log("---------department edit------------", checkprofile[0].length  , "===========", checkprofile)
                 if (checkprofile[0].length == 0) {
-                    let chs = checkprofile[0][0];
-                    let status = data.status == true ? 1 : 0;
-                    let adddep = `UPDATE  stock_mgmt.department SET  depname='${data.depname}' ,busid =${data.busid}`;
+                    let adddep = `UPDATE  stock_mgmt.department SET  depname='${data.depname}' ,busid =${bid}`;
                     adddep += ' WHERE id =' + data.id
                     console.log('Edit Broadcast Query: ', adddep);
                     adddep = await conn.query(adddep);

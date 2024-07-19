@@ -12,6 +12,7 @@ async function addhsn(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -141,9 +142,6 @@ async function edithsn(req) {
                     let chs = checkprofile[0][0];
                     let status = data.status == true ? 1 : 0;
                     let addhd = `UPDATE  stock_mgmt.hsn SET  mhsn='${data.mhsn}',mby=${jwtdata.id}`;
-                    
-                    
-                   
                     addhd += ' WHERE id =' + data.id
                     console.log('Edit Broadcast Query: ', addhd);
                     addhd = await conn.query(addhd);

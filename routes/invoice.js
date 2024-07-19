@@ -41,24 +41,25 @@ async function addinvoice(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.invoice WHERE busid =" + data.busid + " and invno='" + data.invno + "'");
+                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.invoice WHERE busid =" + bid + " and invno='" + data.invno + "'");
                 // console.log('detild data', checkprofile);
 
                 if (checkprofile[0][0]['cnt'] == 0) {
                     let checkadd = await conn.query(`SELECT b.bname,b.pan,b.tinno, ba.baaddrname,ba.bagstno,b.id FROM stock_mgmt.business b 
-                    LEFT JOIN  stock_mgmt.business_address ba  ON b.id=ba.bid  WHERE b.id=${data.busid} AND ba.id=${data.busaddr}`);
+                    LEFT JOIN  stock_mgmt.business_address ba  ON b.id=ba.bid  WHERE b.id=${bid} AND ba.id=${data.busaddr}`);
                     let checkven = await conn.query(` SELECT  id,addrname,gst_no,vid FROM stock_mgmt.vendor_address   WHERE id=${data.vaddr} AND vid=${data.vendorid} `);
                     // let status = data.status == true ? 1 : 0;
                     // data.addr = data.addr.replace("'", ' ');
 
                     let addinv = `INSERT INTO stock_mgmt.invoice SET                                                                 
                         invno='${data.invno}',
-                        busid=${data.busid},
+                        busid=${bid},
                         busname='${checkadd[0][0].bname}',
                         busaddrid=${data.busaddr},
                         busaddr='${checkadd[0][0].baaddrname}',
@@ -98,7 +99,7 @@ async function addinvoice(req) {
                                 INNER JOIN make mk ON mk.makeid=m.makeid WHERE m.modelid=${inv.modelid}`);
                             let itemname = itemnameResult[0][0]['itemname'];
                                 let addinvitem = ` Insert into stock_mgmt.invoice_items set 
-                                        busid=${data.busid},
+                                        busid=${bid},
                                         invid=${invoiceid},
                                         itemname='${itemname.toString().replace(/\[/g, '').replace(/\]/g, '')}', 
                                         modelid=${inv.modelid},               
@@ -425,12 +426,14 @@ async function editinvoice(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 const checkProfileQuery = "SELECT COUNT(*) cnt FROM stock_mgmt.invoice WHERE busid = ? and invno = ? and id != ?";
-                const checkProfileResult = await conn.query(checkProfileQuery, [data.busid, data.invno, data.id]);
+                const checkProfileResult = await conn.query(checkProfileQuery, [bid, data.invno, data.id]);
 
                 if (checkProfileResult[0][0]['cnt'] === 0) {
                     // Fetch additional details for the invoice
@@ -438,7 +441,7 @@ async function editinvoice(req) {
                                                FROM stock_mgmt.business b
                                                LEFT JOIN stock_mgmt.business_address ba ON b.id = ba.bid
                                                WHERE b.id = ? AND ba.id = ?`;
-                    const checkAddResult = await conn.query(checkAddQuery, [data.busid, data.busaddr]);
+                    const checkAddResult = await conn.query(checkAddQuery, [bid, data.busaddr]);
 
                     const checkVenQuery = `SELECT id, addrname, gst_no, vid
                                                FROM stock_mgmt.vendor_address
@@ -451,7 +454,9 @@ async function editinvoice(req) {
                                                   busgstno = ?, buspanno = ?, invdate = ?, vid = ?, vaddrid = ?,
                                                   vaddr = ?, vgstno = ?, gsttype = ? `;
                    
-                    console.log((checkAddResult[0][0].bagstno).slice(0, 2), (checkVenResult[0][0].gst_no).slice(0, 2));
+                    console.log((checkAddResult[0][0].bagstno).slice(0, 2), (checkVenResult[0][0].gst_no).slice(0, 2),'weqwe',checkAddResult[0][0]);
+
+                    console.log("(checkAddResult[0][0])",checkAddResult[0][0] );
                     if (data.gsttype == 1) {
                         let res = await checkgst((checkAddResult[0][0].bagstno).slice(0, 2), (checkVenResult[0][0].gst_no).slice(0, 2), data.cgst, data.sgst, data.igst);
                         console.log('res :', res);
@@ -462,7 +467,7 @@ async function editinvoice(req) {
                     }
                     updateInvoiceQuery += ' WHERE id =' + data.id;
                     // Execute the update query
-                    const updateInvoiceResult = await conn.query(updateInvoiceQuery, [data.invno, data.busid, checkAddResult[0][0].bname, data.busaddr, checkAddResult[0][0].baaddrname, checkAddResult[0][0].bagstno, checkAddResult[0][0].pan, data.invdate, data.vendorid, data.vaddr, checkVenResult[0][0].addrname, checkVenResult[0][0].gst_no, data.gsttype]);
+                    const updateInvoiceResult = await conn.query(updateInvoiceQuery, [data.invno, bid, checkAddResult[0][0].bname, data.busaddr, checkAddResult[0][0].baaddrname, checkAddResult[0][0].bagstno, checkAddResult[0][0].pan, data.invdate, data.vendorid, data.vaddr, checkVenResult[0][0].addrname, checkVenResult[0][0].gst_no, data.gsttype]);
 
 
                     if (updateInvoiceResult[0]['affectedRows'] > 0) {
@@ -499,7 +504,7 @@ async function editinvoice(req) {
                                 }
                                 updateInvoiceItemQuery += ' WHERE iiid =' + inv.id;
                                 // Execute the update query for the invoice item
-                                const updateInvoiceItemResult = await conn.query(updateInvoiceItemQuery, [data.busid, ivid, inv.modelid,itemname, inv.itemgst, inv.itemamt,inv.vastatus]);
+                                const updateInvoiceItemResult = await conn.query(updateInvoiceItemQuery, [bid, ivid, inv.modelid,itemname, inv.itemgst, inv.itemamt,inv.vastatus]);
 
                                 if (updateInvoiceItemResult[0]['affectedRows'] > 0) {
                                     erroraray.push({ msg: "Invoice Item Updated Successfully", err_code: 0 });
@@ -511,7 +516,7 @@ async function editinvoice(req) {
                             } else {
                                 // Insert new invoice item
                                 let insertInvoiceItemQuery = `INSERT INTO stock_mgmt.invoice_items set 
-                                                                  busid=?, invid=?,modelid=?, itemname=?, itemgst=?, itemamt=?
+                                                                  busid=?, invid=?,modelid=?, itemname=?, itemgst=?, itemamt=?,cby=?
                                                                  `;
                                                                  
                                 if (inv.itemqty != null || inv.itemqty != '') insertInvoiceItemQuery += `,itemqty=${inv.itemqty}`;
@@ -527,7 +532,7 @@ async function editinvoice(req) {
 
                                 }
                                 // Execute the insert query for the new invoice item
-                                const insertInvoiceItemResult = await conn.query(insertInvoiceItemQuery, [data.busid, ivid,inv.modelid, itemname, inv.itemgst, inv.itemamt]);
+                                const insertInvoiceItemResult = await conn.query(insertInvoiceItemQuery, [bid, ivid,inv.modelid, itemname, inv.itemgst, inv.itemamt, jwtdata.id]);
 
                                 if (insertInvoiceItemResult[0]['affectedRows'] > 0) {
                                     erroraray.push({ msg: "Invoice Item Added Successfully", err_code: 0 });

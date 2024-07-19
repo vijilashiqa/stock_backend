@@ -10,6 +10,7 @@ async function addbusiness(req) {
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
 		console.log("add business log jwt ", jwtdata);
+		
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();

@@ -12,6 +12,7 @@ async function addhub(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -21,7 +22,7 @@ async function addhub(req) {
                 if (checkprofile[0][0]['cnt'] == 0) {
                     let addhd = `INSERT INTO stock_mgmt.hub SET   
                                                                        hubname ='${data.hubname}',
-                                                                       bid=${data.bid},
+                                                                       bid=${bid},
                                                                        descs='${data.desc}',
                                                                        depid =${data.depid},
                                                                        hubincname='${data.hubincname}',
@@ -160,6 +161,7 @@ async function edithub(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -171,7 +173,7 @@ async function edithub(req) {
                     let status = data.status == true ? 1 : 0;
                     let addhd = `UPDATE  stock_mgmt.hub SET  
                    hubname ='${data.hubname}',
-                                                                       bid=${data.bid},
+                                                                       bid=${bid},
                                                                        descs='${data.desc}',
                                                                        depid =${data.depid},
                                                                        hubincname='${data.hubincname}',

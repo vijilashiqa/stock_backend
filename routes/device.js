@@ -18,6 +18,7 @@ async function adddevice(req) {
     console.log('Add device Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -28,7 +29,7 @@ async function adddevice(req) {
                     let status = data.status == true ? 1 : 0;
                     // data.addr = data.addr.replace("'", ' ');
                     let addhd = `INSERT INTO stock_mgmt.device SET 
-                                                                   bid=${data.bid},
+                                                                   bid=${bid},
                                                                    devicename ='${data.devicename}',
                                                                    cby=${jwtdata.id}
                                                                  `;
@@ -176,17 +177,17 @@ async function editdevice(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
                 let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.`device` WHERE devicename ='"+data.devicename+"' and  deviceid!=" + data.deviceid + "");
-             console.log("+++++++++++++++++++++++++++===",checkprofile[0].length);
                 if (checkprofile[0].length == 0) {
-                    let chs = checkprofile[0][0];
-                    let status = data.status == true ? 1 : 0;
-                    let addhd = `UPDATE  stock_mgmt.device SET  bid=${data.bid},devicename='${data.devicename}', mby =${jwtdata.id}`;
+                    // let chs = checkprofile[0][0];
+                    // let status = data.status == true ? 1 : 0;
+                    let addhd = `UPDATE  stock_mgmt.device SET  bid=${bid},devicename='${data.devicename}', mby =${jwtdata.id}`;
                      addhd += ' WHERE deviceid =' + data.deviceid
                     console.log('Edit Broadcast Query: ', addhd);
                     addhd = await conn.query(addhd);

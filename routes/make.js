@@ -18,6 +18,8 @@ async function addmake(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+
         // console.log("request daat",data);
         let conn = await poolPromise.getConnection();
         if (conn) {
@@ -29,7 +31,7 @@ async function addmake(req) {
                     let status = data.status == true ? 1 : 0;
                     // data.addr = data.addr.replace("'", ' ');
                     let addhd = `INSERT INTO stock_mgmt.make SET 
-                                                                   bid=${data.bid},
+                                                                   bid=${bid},
                                                                    makename ='${data.makename}',
                                                                    cby=${jwtdata.id}
                                                                  `;
@@ -88,6 +90,7 @@ make.post('/listmake', function (req, res, err) {
             sql = conn.query(sqlquery, [data.index, data.limit], function (err, result) {
                 if (!err) {
                     finalresult.push(result);
+                    // console.log("finalresult",finalresults);
                     sql = conn.query(sqlqueryc, function (err, result) {
                         conn.release();
                         if (!err) {
@@ -106,38 +109,15 @@ make.post('/listmake', function (req, res, err) {
 });
 
 make.post('/selectmake', function (req, res) {
-    var where = [], jwtdata = req.jwt_data, sql, data = req.body
-        , sqlquery = 'SELECT * FROM stock_mgmt.make ';
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
-
-
+    var where = [], jwtdata = req.jwt_data, sql, data = req.body, sqlquery = 'SELECT * FROM stock_mgmt.make ';
     if (data.bid != '' && data.bid != null) where.push(` bid = ${data.bid} `);
     if (where.length > 0) {
         where = ' WHERE' + where.join(' AND ');
         sqlquery += where;
     }
-
-
     if (data.hasOwnProperty('like') && data.like) {
         sqlquery += ' AND makename LIKE "%' + data.like + '%" '
     }
-
-
-    
-
-    // if (data.hasOwnProperty('make_id-') && data.make_id) {
-    //     sqlquery += ` AND make_id =${data.make_id}`;
-    // }
-    // if (data.hasOwnProperty('make_name') && data.make_name) {
-    //     sqlquery += ` AND make_name =${data.make_name}`;
-    // }
-    
-    
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    // }
     console.log('data ###########', sqlquery)
     pool.getConnection(function (err, conn) {
         if (err) {
@@ -182,8 +162,7 @@ async function editmake(req) {
     // console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
-
-        
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -191,9 +170,9 @@ async function editmake(req) {
                 console.log('Data', data);
                 let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.`make` WHERE makename ='"+data.makename+"' and  makeid!=" + data.makeid + "");
                 if (checkprofile[0].length == 0) {
-                    let chs = checkprofile[0][0];
-                    let status = data.status == true ? 1 : 0;
-                    let addhd = `UPDATE  stock_mgmt.make SET bid=${data.bid}, makename='${data.makename}', mby=${jwtdata.id}`;
+                    // let chs = checkprofile[0][0];
+                    // let status = data.status == true ? 1 : 0;
+                    let addhd = `UPDATE  stock_mgmt.make SET bid=${bid}, makename='${data.makename}', mby=${jwtdata.id}`;
                     addhd += ' WHERE makeid =' + data.makeid
                     // console.log('Edit Broadcast Query: ', addhd);
                     addhd = await conn.query(addhd);

@@ -12,7 +12,7 @@ async function addvendor(req) {
 		var erroraray = [];
 		var data = req.body;
 		var jwtdata = req.jwt_data;
-
+		let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
 		let conn = await poolPromise.getConnection();
 
 		if (conn) {
@@ -34,7 +34,7 @@ async function addvendor(req) {
 						cby=?
 						`;
 
-					addven = await conn.query(addven, [data.bid,data.vname, data.vcompany, data.vmobile, data.vmail,jwtdata.id]);
+					addven = await conn.query(addven, [bid,data.vname, data.vcompany, data.vmobile, data.vmail,jwtdata.id]);
 
 					if (addven[0]['affectedRows'] > 0) {
 						let vendorid = addven[0].insertId;
@@ -104,10 +104,8 @@ async function addvendor(req) {
 
 
 vendors.post('/listvendor', function (req, res, err) {
-	var sql, sqlquery = `SELECT v.id,v.vcompany,v.vname,v.vmobile,v.vmail FROM stock_mgmt.vendor v
-	   `,
-		sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.vendor v
-		`, finalresult = [],
+	var sql, sqlquery = `SELECT v.id,v.vcompany,v.vname,v.vmobile,v.vmail FROM stock_mgmt.vendor v `,
+		sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.vendor v `, finalresult = [],
 		data = req.body;
 	if (data.limit && data.index) {
 		sqlquery += ' LIMIT ?,?'
@@ -146,9 +144,6 @@ vendors.post('/getvendor', function (req, res) {
 		}
 	});
 });
-
-
-
 
 vendors.post('/getvendoraddredit', function (req, res, err) {
 	var jwtdata = req.jwt_data, where = [], sql,
@@ -387,7 +382,8 @@ async function vendoredit(req) {
 	console.log('Edit Vendor Data:', req.body);
 	return new Promise(async (resolve, reject) => {
 		var errorArray = [], data = req.body, jwtdata = req.jwt_data;
-		
+		let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+
 
 		let conn = await poolPromise.getConnection();
 
@@ -413,7 +409,7 @@ async function vendoredit(req) {
 					mby=?
                     WHERE id = ?`;
 
-					let updatedVendor = await conn.query(updateVendor, [data.bid,data.vcompany,data.vname, data.vmobile, data.vmail,jwtdata.id, vendorId]);
+					let updatedVendor = await conn.query(updateVendor, [bid,data.vcompany,data.vname, data.vmobile, data.vmail,jwtdata.id, vendorId]);
 				
 					if (updatedVendor[0]['affectedRows'] > 0) {
 						// Update Vendor Address

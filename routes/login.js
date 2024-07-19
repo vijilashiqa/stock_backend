@@ -22,8 +22,7 @@ async function account(data) {
             await conn.beginTransaction();
             try {
                 sqlquery = ` SELECT * FROM stock_mgmt.users 
-                WHERE loginid = '${data.loginid}' AND pwd='${data.pwd}' 
-                `
+                WHERE loginid = '${data.loginid}' AND pwd='${data.pwd}' `
                 let usercount = " SELECT EXISTS( " + sqlquery + " )AS COUNT ";
                 console.log('User Exists Query ', usercount);
                 let [[userava]] = await conn.query(usercount);
@@ -57,8 +56,6 @@ async function account(data) {
                          console.log(token, "tokennnnnnnnnnnnnn");
                          console.log('refressss',refresh_token);
                          console.log('usertype',userDet.urole);
-
-
                         updatetoken = " UPDATE stock_mgmt.users set `token`='" + token + "', `refresh_token`='" + refresh_token + "' where id=" + userDet.id;
                         console.log('updatetoken', updatetoken);
                         updatetoken = await conn.query(updatetoken);

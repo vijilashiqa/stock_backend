@@ -13,18 +13,19 @@ async function addmodel(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.model WHERE modelname ='" + data.modelname + "' and bid="+data.bid+"");
+                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.model WHERE modelname ='" + data.modelname + "' and bid="+bid+"");
                 if (checkprofile[0][0]['cnt'] == 0) {
                     let status = data.status == true ? 1 : 0;
                     // data.addr = data.addr.replace("'", ' ');
                     let addhd = `INSERT INTO stock_mgmt.model SET 
                                                                    makeid=${data.makeid},
-                                                                   bid=${data.bid},
+                                                                   bid=${bid},
                                                                    deviceid=${data.deviceid},
                                                                    modelname ='${data.modelname}',
                                                                    cby=${jwtdata.id}
@@ -170,6 +171,7 @@ async function editmodel(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
+        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -181,7 +183,7 @@ async function editmodel(req) {
                     let status = data.status == true ? 1 : 0;
                     let addhd = `UPDATE  stock_mgmt.model SET 
                     makeid=${data.makeid},
-                    bid=${data.bid},
+                    bid=${bid},
                     deviceid=${data.deviceid},
                      modelname='${data.modelname}',
                      mby=${jwtdata.id}`;      
