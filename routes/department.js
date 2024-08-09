@@ -10,10 +10,9 @@ const joiValidate = require('../schema/department');
 
 async function adddepartment(req) {
     console.log('Add department  Data:', req.jwt_data);
-
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.busid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -58,9 +57,22 @@ async function adddepartment(req) {
 
 
 department.post('/listdepartment', function (req, res, err) {
-    var  sql, sqlquery = '  SELECT d.id,d.depname,d.busid,b.bname FROM stock_mgmt.department d LEFT JOIN stock_mgmt.business b ON b.id =d.busid   LIMIT ?,? ',
+    var  sql, sqlquery = '  SELECT d.id,d.depname,d.busid,b.bname FROM stock_mgmt.department d LEFT JOIN stock_mgmt.business b ON b.id =d.busid  ',
         sqlqueryc = ' SELECT COUNT(*) AS count FROM stock_mgmt.department d LEFT JOIN stock_mgmt.business b ON b.id =d.busid ', finalresult = [],
-        data = req.body;
+        data = req.body,jwtdata = req.jwt_data, where=[];
+        let bid = jwtdata.urole == 999  ? data.bid : jwtdata.bid;
+        // if (data.busid != '' && data.busid != null) where.push(` d.id = ${data.busid} `);
+        if (data.depname != '' && data.depname != null) where.push(` d.id = ${data.depname} `);
+        if (jwtdata.urole > 888 && data.bid != '' && data.bid != null) where.push(`  d.busid= ${bid} `);
+        if (jwtdata.urole <= 888) where.push(` d.busid= ${bid} `);
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+        }
+        // if (data.limit && data.index) {
+            sqlquery += ' LIMIT ?,?'
+        // }
+console.log("where cond", sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, [data.index, data.limit], function (err, result) {
@@ -85,8 +97,12 @@ department.post('/listdepartment', function (req, res, err) {
 
 department.post('/selectdepartment', function (req, res) {
     var where = [], jwtdata = req.jwt_data, sql, data = req.body
+
         , sqlquery = 'SELECT id,depname FROM stock_mgmt.department';
+
+        console.log("data ",data);
     if (data.busid != '' && data.busid != null) where.push(` busid = ${data.busid} `);
+
     if (where.length > 0) {
         where = ' WHERE' + where.join(' AND ');
         sqlquery += where;
@@ -137,14 +153,15 @@ async function editdepartment(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.busid : jwtdata.bid;
+        console.log("business id !!!!!!!!!!",bid);
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.department WHERE depname ='"+data.depname+"' and  busid !=" + bid + "");
-               console.log("---------department edit------------", checkprofile[0].length  , "===========", checkprofile)
+                let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.department WHERE depname ='"+data.depname+"' and  id !=" + data.id + "");
+               console.log("---------department edit------------", checkprofile[0].length)
                 if (checkprofile[0].length == 0) {
                     let adddep = `UPDATE  stock_mgmt.department SET  depname='${data.depname}' ,busid =${bid}`;
                     adddep += ' WHERE id =' + data.id

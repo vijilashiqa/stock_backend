@@ -45,7 +45,6 @@ async function addstate(req) {
             catch (e) {
                 console.log('Error ', e);
                 erroraray.push({ msg: 'Please try after sometimes Error', err_code: 'ERR' })
-
                 await conn.rollback();
             }
             console.log('Success--1');
@@ -65,7 +64,6 @@ location.post('/addstate', async (req, res) => {
       const validation = joiValidate.stateDataSchema.validate(req.body);
     if (validation.error) {
         console.log(validation.error.details);
-        // return res.status(422).json({ msg: validation.error.details, err_code: '422' });
         return res.json([{ msg: validation.error.details[0].message, err_code: '422' }]);
     }
     let result = await addstate(req);

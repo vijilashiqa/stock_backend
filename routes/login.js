@@ -9,12 +9,12 @@ login.use(bodyParser.urlencoded({     // to support URL-encoded bodies
 const jwt = require('jsonwebtoken');
 const tokenExpireTime = 2 * 60 * 60 * 1000;
 const refreshTokenExpireTime = 24 * 60 * 60 * 1000;
-const privateKey  = require('../config/key');
+const privateKey = require('../config/key');
 const poolPromise = require('../connection/conn').poolp;
 
 async function account(data) {
     console.log("Login Data", data)
-    console.log("request data", data.jwtdata);
+    // console.log("request data", data.jwtdata);
     return new Promise(async (resolve, reject) => {
         var sqlquery, loginid, pwd, erroraray = [], refresh_token;
         let conn = await poolPromise.getConnection();
@@ -35,27 +35,25 @@ async function account(data) {
                         let session_id = generateRondomSting(), token, updatetoken;
                         try {
                             token = await jwt.sign({
-                                id: userDet.id, loginid: userDet.loginid,fname:userDet.fname, email: userDet.email, mobile: userDet.mobile,umenu:userDet.umenu,bid:userDet.bid,
-                                urole:userDet.urole,session_id: session_id,
+                                id: userDet.id, loginid: userDet.loginid, fname: userDet.fname, email: userDet.email, mobile: userDet.mobile, umenu: userDet.umenu, bid: userDet.bid,
+                                urole: userDet.urole, session_id: session_id,
                             },
                                 privateKey, { algorithm: 'HS512', expiresIn: tokenExpireTime });
-                                refresh_token = await jwt.sign({ id: userDet.id, loginid: userDet.loginid, session_id: session_id ,urole:userDet.urole,umenu:userDet.umenu,},
+                            refresh_token = await jwt.sign({ id: userDet.id, loginid: userDet.loginid, session_id: session_id, urole: userDet.urole, umenu: userDet.umenu, },
                                 privateKey, { algorithm: 'HS512', expiresIn: refreshTokenExpireTime });
-
-
-                                console.log("token @@@@@@@@@@@",token);
+                                 console.log("token @@@@@@@@@@@", token);
 
                         } catch (e) {
                             erroraray.push({ msg: "Please Try After Sometimes", status: 0, error_msg: '48' });
                             return;
                         }
                         let user_details = {
-                            id: userDet.id, loginid: userDet.loginid,fname:userDet.fname, email: userDet.email, mobile: userDet.mobile,umenu:userDet.umenu,bid:userDet.bid,
-                                urole:userDet.urole
+                            id: userDet.id, loginid: userDet.loginid, fname: userDet.fname, email: userDet.email, mobile: userDet.mobile, umenu: userDet.umenu, bid: userDet.bid,
+                            urole: userDet.urole
                         }
-                         console.log(token, "tokennnnnnnnnnnnnn");
-                         console.log('refressss',refresh_token);
-                         console.log('usertype',userDet.urole);
+                        console.log(token, "tokennnnnnnnnnnnnn");
+                        console.log('refressss', refresh_token);
+                        console.log('usertype', userDet.urole);
                         updatetoken = " UPDATE stock_mgmt.users set `token`='" + token + "', `refresh_token`='" + refresh_token + "' where id=" + userDet.id;
                         console.log('updatetoken', updatetoken);
                         updatetoken = await conn.query(updatetoken);
@@ -122,9 +120,9 @@ async function resetpasswaord(req) {
     console.log('update Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, password_en;
-    
+
         let conn = await poolPromise.getConnection();
-        console.log("jwt req",jwtdata)
+        console.log("jwt req", jwtdata)
         if (conn) {
             await conn.beginTransaction();
             try {

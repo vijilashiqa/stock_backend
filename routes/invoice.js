@@ -41,7 +41,8 @@ async function addinvoice(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.busid : jwtdata.bid;
+
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -180,14 +181,29 @@ invoice.post('/addinvoice', async (req, res) => {
 });
 
 invoice.post('/listinvoice', function (req, res, err) {
-    var sql, sqlquery = `SELECT* FROM stock_mgmt.invoice
-	   `,
-        sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.invoice
-		`, finalresult = [],
-        data = req.body;
+    var sql, sqlquery = `SELECT b.bname,v.vcompany,i.busname,i.busaddr,i.invno,i.vaddr,i.id FROM stock_mgmt.invoice i INNER JOIN stock_mgmt.business b ON b.id = i.busid INNER JOIN stock_mgmt.vendor v ON v.id =i.vid`,
+        sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.invoice i INNER JOIN stock_mgmt.business b ON b.id = i.busid INNER JOIN stock_mgmt.vendor v ON v.id =i.vid
+		`, finalresult = [],where=[],
+        data = req.body, jwtdata =req.jwt_data;
+   
+    if (data.id != '' && data.id != null) where.push(` i.id = ${data.id} `);
+   
+    let bid = jwtdata.urole == 999  ? data.busid : jwtdata.bid;
+    if (jwtdata.urole > 888 && data.busid != '' && data.busid != null) where.push(`  i.busid = ${bid} `);
+    if (data.vid != '' && data.vid != null) where.push(` i.vid = ${data.vid} `);
+    if (jwtdata.urole <= 888) where.push(` busid= ${bid} `);
+    if (where.length > 0) {
+        where = ' WHERE' + where.join(' AND ');
+        sqlquery += where;
+    }
+
+
     if (data.limit && data.index) {
         sqlquery += ' LIMIT ?,?'
     }
+
+
+    //   sqlquery += ' LIMIT ?,?'
     console.log('-------------------', sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
@@ -229,17 +245,32 @@ invoice.post('/listinvoice', function (req, res, err) {
 
 invoice.post('/getinvoice', function (req, res, err) {
 	
-    var data = req.body, sql, sqlquery = `select * from stock_mgmt.invoice  WHERE busid =${data.busid}`,
-        sqlqueryc = `SELECT COUNT(*) AS count from stock_mgmt.invoice  WHERE busid =${data.busid}`,finalresult = [];
-    console.log('-********************-', sqlquery);
+    var data = req.body, sql, sqlquery = `select * from stock_mgmt.invoice `,
+        sqlqueryc = `SELECT COUNT(*) AS count from stock_mgmt.invoice  `,finalresult = [],where=[];
+console.log("+===============",data);
+
+     
+
+        if (data.bid != '' && data.bid != null) where.push(` busid = ${data.bid} `);
+        // where.push(`itemstatus=1`);
+        if (where.length > 0) {
+            where = ' WHERE  ' + where.join(' AND ');
+            sqlquery += where;
+            sqlqueryc += where
+        }
+
+
+        if (data.hasOwnProperty('like') && data.like) {
+            sqlquery += ' AND invno LIKE "%' + data.like + '%" '
+        }
+
+    console.log('-********234111!!!!!!!!!!!!!!!!!!!!!!!!!!!************-', sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, function (err, result) {
                 if (!err) {
                     finalresult.push(result);
-
-					
-                    sql = conn.query(sqlqueryc, function (err, result) {
+                        sql = conn.query(sqlqueryc, function (err, result) {
                         conn.release();
                         if (!err) {
                             finalresult.push(result[0]);
@@ -256,6 +287,64 @@ invoice.post('/getinvoice', function (req, res, err) {
         }
     });
 });
+
+
+
+
+
+
+invoice.post('/selectinvoice', function (req, res, err) {
+	
+    var data = req.body, sql, sqlquery = `SELECT * FROM stock_mgmt.invoice_items `,
+        sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.invoice_items  `,finalresult = [],where=[];
+console.log("+===============",data);
+
+     
+// if (data.id != '' && data.id != null) where.push(` iiid = ${data.id} `);
+        if (data.bid != '' && data.bid != null) where.push(` busid = ${data.bid} `);
+        // where.push(`itemstatus=1`);
+        if (where.length > 0) {
+            where = ' WHERE  ' + where.join(' AND ');
+            sqlquery += where;
+            sqlqueryc += where
+        }
+    console.log('-********234111!!!!!!!!!!!!!!!!!!!!!!!!!!!************-', sqlquery);
+    pool.getConnection(function (err, conn) {
+        if (!err) {
+            sql = conn.query(sqlquery, function (err, result) {
+                if (!err) {
+                    finalresult.push(result);
+                        sql = conn.query(sqlqueryc, function (err, result) {
+                        conn.release();
+                        if (!err) {
+                            finalresult.push(result[0]);
+                            res.end(JSON.stringify(finalresult));
+                        }
+                    });
+
+
+					console.log("SQL@@@@@@@@@@@@2",sql.sql)
+                } else {
+                    conn.release();
+                }
+            });
+        }
+    });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 invoice.post('/getinvoice_item_edit', function (req, res, err) {
     var jwtdata = req.jwt_data, where = [], sql;
@@ -282,28 +371,23 @@ invoice.post('/getinvoice_item_edit', function (req, res, err) {
    INNER JOIN 
        stock_mgmt.device d ON FIND_IN_SET(d.deviceid, m.deviceid) `,
         data = req.body;
-    if (data.id != '' && data.id != null) where.push(` invid= ${data.id} `);
-    // if (data.id != '' && data.id != null) where.push(` iiid= ${data.id} `);
+   
+   console.log("invoice item",data);
 
+    // if (data.id != '' && data.id != null) where.push(` iiid= ${data.id} `);  modelid
+    if (data.id != '' && data.id != null) where.push(` i.invid= ${data.id} `);
     if (data.busid != '' && data.busid != null) where.push(` i.busid = ${data.busid} `);
-
-
-
 
     where.push(`itemstatus=1`);
     if (where.length > 0) {
         where = ' WHERE  ' + where.join(' AND ');
         sqlquery += where;
         sqlqueryc += where
-
     }
-
 
     if (data.hasOwnProperty('like') && data.like) {
         sqlquery += ' AND itemname LIKE "%' + data.like + '%" '
     }
-
-
     sqlquery += ' GROUP BY  i.busid, i.invid, i.itemqty, i.itemgst, i.itemamt, i.igst, i.sgst, i.cgst, i.itemstatus';
     // sqlqueryc += ' GROUP BY  i.busid, i.invid, i.itemqty, i.itemgst, i.itemamt, i.igst, i.sgst, i.cgst, i.itemstatus';
     
@@ -426,8 +510,7 @@ async function editinvoice(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
-
+        let bid = jwtdata.urole == 999 ? data.busid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();

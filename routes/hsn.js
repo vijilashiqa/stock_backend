@@ -12,7 +12,7 @@ async function addhsn(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -56,9 +56,13 @@ async function addhsn(req) {
     });
 }
 hsn.post('/listhsn', function (req, res, err) {
-    var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT id,mhsn FROM `stock_mgmt`.hsn  LIMIT ?,? ',
-        sqlqueryc = ' SELECT COUNT(*) AS count FROM `stock_mgmt`. hsn ', finalresult = [],
+    var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT  * FROM stock_mgmt.hsn ',
+        sqlqueryc = ' SELECT COUNT(*) AS count FROM stock_mgmt. hsn ', finalresult = [],
         data = req.body;
+
+          sqlquery += ' LIMIT ?,?'
+
+        console.log("sqlqueryc @@@@@@@@@@@@@@@@@",sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, [data.index, data.limit], function (err, result) {
@@ -67,6 +71,7 @@ hsn.post('/listhsn', function (req, res, err) {
                     sql = conn.query(sqlqueryc, function (err, result) {
                         conn.release();
                         if (!err) {
+                            console.log("sucess",finalresult );
                             finalresult.push(result[0]);
                             res.end(JSON.stringify(finalresult));
                         } else {

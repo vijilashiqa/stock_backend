@@ -12,7 +12,7 @@ async function addhub(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -67,19 +67,22 @@ async function addhub(req) {
 
 
 hub.post('/listhub', function (req, res, err) {
-    var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT h.hbid,h.depid,h.bid,h.hubname,h.hubincname,h.hubmobile,h.hubaddr,d.depname,b.bname,h.descs FROM stock_mgmt.hub h INNER JOIN stock_mgmt.business b ON b.id = h.bid INNER JOIN stock_mgmt.department d ON d.id = h.depid LIMIT ?,? ',
+    var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT h.hbid,h.depid,h.bid,h.hubname,h.hubincname,h.hubmobile,h.hubaddr,d.depname,b.bname,h.descs FROM stock_mgmt.hub h INNER JOIN stock_mgmt.business b ON b.id = h.bid INNER JOIN stock_mgmt.department d ON d.id = h.depid',
         sqlqueryc = ' SELECT COUNT(*) AS count FROM stock_mgmt.hub h INNER JOIN stock_mgmt.business b ON b.id = h.bid INNER JOIN stock_mgmt.department d ON d.id = h.depid ', finalresult = [],
         data = req.body;
+        data = req.body,jwtdata = req.jwt_data, where=[];
+        if (data.depid != '' && data.depid != null) where.push(` h.depid = ${data.depid} `);
+        if (data.hubid != '' && data.hubid != null) where.push(` h.hbid = ${data.hubid} `);
+        let bid = jwtdata.urole == 999  ? data.bid : jwtdata.bid;
+        if (jwtdata.urole > 888 && data.bid != '' && data.bid != null) where.push(`  h.bid = ${bid} `);
+        if (jwtdata.urole <= 888) where.push(` h.bid= ${bid} `);
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+        }
 
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hsn.hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hsn.hdid= ${jwtdata.hdid} `);
-
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    //     sqlqueryc += where;
-    // }
-    // sqlquery += ' LIMIT ?,? ';
+          sqlquery += ' LIMIT ?,?'
+        console.log("listt hub",sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, [data.index, data.limit], function (err, result) {
@@ -161,7 +164,7 @@ async function edithub(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -169,8 +172,8 @@ async function edithub(req) {
                 console.log('Data', data);
                 let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.`hub` WHERE hubname ='" + data.hubname + "' and  hbid!=" + data.id + "");
                 if (checkprofile[0].length == 0) {
-                    let chs = checkprofile[0][0];
-                    let status = data.status == true ? 1 : 0;
+                    // let chs = checkprofile[0][0];
+                    // let status = data.status == true ? 1 : 0;
                     let addhd = `UPDATE  stock_mgmt.hub SET  
                    hubname ='${data.hubname}',
                                                                        bid=${bid},

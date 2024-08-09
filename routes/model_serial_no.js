@@ -12,8 +12,9 @@ async function addmodel_serial_no(req) {
     console.log('Edit User Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var errorArray = [], data = req.body, jwtData = req.jwt_data;
-        let bid = jwtData.role == 999 ? data.bid : jwtData.bid;
+        let bid = jwtData.urole == 999 ? data.bid : jwtData.bid;
         let conn;
+        console.log("add model data",data)
         conn = await poolPromise.getConnection();
         if (!conn) {
             errorArray.push({ msg: 'Unable to establish a database connection.', err_code: 500 });
@@ -45,8 +46,7 @@ async function addmodel_serial_no(req) {
                         }
                     } else {
 
-                        let addsno = `INSERT INTO stock_mgmt.model_serial_num
-                                SET bid=${bid},
+                        let addsno = `INSERT INTO stock_mgmt.model_serial_num SET bid=${bid},
                                     inv_itemid=${data.itemname},
                                     modelid=(SELECT modelid FROM stock_mgmt.invoice_items WHERE iiid=${data.itemname}),
                                     serial_num='${msno.serialno}',
@@ -92,21 +92,35 @@ async function addmodel_serial_no(req) {
 
 model_serial_no.post('/listmodel_serial_no', function (req, res) {
     console.log(req.body)
-    var sqlquery = `SELECT ms.model_sid,ms.bid,b.bname,ms.inv_itemid,i.itemname,ii.invno FROM stock_mgmt.model_serial_num ms
+    var sqlquery = `SELECT ms.model_sid,ms.bid,b.bname,ms.inv_itemid,i.itemname,ii.invno,ii.id,ms.serial_num FROM stock_mgmt.model_serial_num ms
+        INNER JOIN stock_mgmt.invoice_items i ON ms.inv_itemid=i.iiid
+         INNER JOIN stock_mgmt.invoice ii ON i.invid= ii.id
+         INNER JOIN stock_mgmt.business b ON ms.bid=b.id`,
+        data = req.body,where=[],jwtdata =req.jwt_data,
+        sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.model_serial_num ms
         LEFT JOIN stock_mgmt.invoice_items i ON ms.inv_itemid=i.iiid
          LEFT JOIN stock_mgmt.invoice ii ON i.invid= ii.id
-         LEFT JOIN stock_mgmt.business b ON ms.bid=b.id GROUP BY inv_itemid `,
-        data = req.body,
-        sqlqueryc = `SELECT COUNT(*) AS count FROM stock_mgmt.model_serial_num ms
-         LEFT JOIN stock_mgmt.invoice_items i ON ms.inv_itemid=i.iiid
-         LEFT JOIN stock_mgmt.invoice ii ON i.invid= ii.id
-         LEFT JOIN stock_mgmt.business b ON ms.bid=b.id `;
+         LEFT JOIN stock_mgmt.business b ON ms.bid=b.id`;
+        let bid = jwtdata.urole == 999  ? data.busid : jwtdata.bid;
+        if (data.modelid != '' && data.modelid != null) where.push(` ms.modelid= ${data.modelid} `);
+         if (data.inv_itemid != '' && data.inv_itemid != null) where.push(` ms.inv_itemid= ${data.inv_itemid} `);
+         if (data.serialno != '' && data.serialno != null) where.push(` ms.model_sid= ${data.serialno} `);
+        if (jwtdata.urole > 888 && data.busid != '' && data.busid != null) where.push(`  ms.bid = ${bid} `);
+        if (jwtdata.urole <= 888) where.push(` ms.bid= ${bid} `);
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+        }
+
+        // sqlquery +='GROUP BY inv_itemid' ;
+
+        sqlquery += ' LIMIT ?,? ';
     pool.getConnection(function (err, conn) {
         if (err) {
             console.log('Error');
         } else {
             console.log(data)
-            var sql = conn.query(sqlquery, function (err, result) {
+            var sql = conn.query(sqlquery,[data.index, data.limit], function (err, result) {
                 console.log(sql.sql)
                 if (!err) {
                     var val = [];
@@ -172,11 +186,19 @@ model_serial_no.post('/listmodel_serial_no', function (req, res) {
 model_serial_no.post('/selectmodel_serial_num', function (req, res) {
     var where = [], jwtdata = req.jwt_data, sql, data = req.body
         , sqlquery = 'SELECT * FROM stock_mgmt.model_serial_num';
-    if (where.length > 0) {
-        where = ' WHERE' + where.join(' AND ');
-        sqlquery += where;
-    }
-    console.log('data', data)
+console.log("data@@@@@@@@@@22",data);
+
+
+   if (jwtdata.urole > 888 && data.busid != '' && data.busid != null) where.push(`  bid = ${data.busid} `);
+        if (jwtdata.urole <= 888) where.push(` bid= ${data.busid} `);
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+        }
+        if (data.hasOwnProperty('like') && data.like) {
+            sqlquery += ' AND serial_num LIKE "%' + data.like + '%" '
+        }
+
     pool.getConnection(function (err, conn) {
         if (err) {
             console.log(err);
@@ -245,7 +267,7 @@ model_serial_no.post('/getserial_no', function (req, res) {
 async function editmodel_serial_no(req) {
     return new Promise(async (resolve, reject) => {
         var errorArray = [], data = req.body, jwtData = req.jwt_data;
-        let bid = jwtData.role == 999 ? data.bid : jwtData.bid;
+        let bid = jwtData.urole == 999 ? data.bid : jwtData.bid;
 
         let conn;
         console.log('Edit User Data:', data);
@@ -278,7 +300,7 @@ async function editmodel_serial_no(req) {
                         let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT Serial NO',`longtext`='DONE BY',urole=" + jwtData.urole + ", cby=" + jwtData.id;
                         let sqllogResult = await conn.query(sqllog);
                         if (sqllogResult[0].affectedRows > 0) {
-                            errorArray.push({ msg: "Serial Number Added Successfully", err_code: 0 });
+                            errorArray.push({ msg: "Serial Number Updated Successfully", err_code: 0 });
                             await conn.commit();
                         } else {
                             errorArray.push({ msg: "Contact Your Admin.", err_code: 199 });

@@ -70,21 +70,22 @@ async function addmake(req) {
 }
 make.post('/listmake', function (req, res, err) {
     var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT m.makeid,m.makename,b.bname FROM `stock_mgmt`.make m ' 
-    +'inner join business b on m.bid=b.id '
-     +'LIMIT ?,? ',
+    +'inner join business b on m.bid=b.id ',
         sqlqueryc = ' SELECT COUNT(*) AS count FROM `stock_mgmt`. make m  '
-        +'inner join business b on m.bid=b.id ', finalresult = [],
+        +'inner join business b on m.bid=b.id ', finalresult = [],where=[],
         data = req.body;
+        let bid = jwtdata.urole == 999  ? data.busid  : jwtdata.bid;
+        if (jwtdata.urole > 888 && data.busid != '' && data.busid != null) where.push(`  bid = ${bid} `);
+        if (jwtdata.urole <= 888) where.push(` bid= ${bid} `);
+        if (data.make != '' && data.make != null) where.push(` m.makeid = ${data.make} `);
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+        }
+       
 
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` make.hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` make.hdid= ${jwtdata.hdid} `);
-
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    //     sqlqueryc += where;
-    // }
-    // sqlquery += ' LIMIT ?,? ';
+          sqlquery += ' LIMIT ?,?'
+        console.log("sql qurey", sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
             sql = conn.query(sqlquery, [data.index, data.limit], function (err, result) {
@@ -162,7 +163,7 @@ async function editmake(req) {
     // console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();

@@ -13,7 +13,7 @@ async function addown_use(req) {
         if (conn) {
             await conn.beginTransaction();
             try {
-                let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+                let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
                 console.log('Data', data);
                 if (data.modetype == 0) {
                     let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.own_use WHERE model_sid =" + data.model_sid + " and sstatus=1 ");
@@ -126,25 +126,24 @@ own_use.post('/listown_use', function (req, res, err) {
     INNER JOIN stock_mgmt.model_serial_num m ON o.model_sid=m.model_sid
     LEFT JOIN stock_mgmt.invoice_items i ON m.inv_itemid = i.iiid
    LEFT JOIN stock_mgmt.department d ON o.depid =d.id
-   LEFT JOIN stock_mgmt.hub h ON h.hbid =o.hubid
-      LIMIT ?,? `,
-        sqlqueryc = `  SELECT o.ownid,o.bid,o.model_sid,b.bname,m.serial_num,o.sstatus,i.itemname,o.depid,d.depname,h.hubname FROM stock_mgmt.own_use o
+   LEFT JOIN stock_mgmt.hub h ON h.hbid =o.hubid`,
+        sqlqueryc = ` SELECT COUNT(*) AS count FROM stock_mgmt.own_use o
         INNER JOIN stock_mgmt.business b ON o.bid=b.id AND o.sstatus =1
         INNER JOIN stock_mgmt.model_serial_num m ON o.model_sid=m.model_sid
         LEFT JOIN stock_mgmt.invoice_items i ON m.inv_itemid = i.iiid
        LEFT JOIN stock_mgmt.department d ON o.depid =d.id
        LEFT JOIN stock_mgmt.hub h ON h.hbid =o.hubid `, finalresult = [],
-        data = req.body;
-
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hsn.hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hsn.hdid= ${jwtdata.hdid} `);
-
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    //     sqlqueryc += where;
-    // }
-    // sqlquery += ' LIMIT ?,? ';
+        data = req.body, jwtdata = req.jwt_data;
+    if (data.depid != '' && data.depid != null) where.push(` o.depid = ${data.depid} `);
+    if (data.model_sid != '' && data.model_sid != null) where.push(` o.model_sid = ${data.model_sid} `);
+    let bid = jwtdata.urole == 999 ? data.busid : jwtdata.bid;
+    if (jwtdata.urole > 888 && data.busid != '' && data.busid != null) where.push(`  o.bid= ${bid} `);
+    if (jwtdata.urole <= 888) where.push(` o.bid= ${bid} `);
+    if (where.length > 0) {
+        where = ' WHERE' + where.join(' AND ');
+        sqlquery += where;
+    }
+    sqlquery += ' LIMIT ?,?'
     console.log('ddddddd', sqlquery);
     pool.getConnection(function (err, conn) {
         if (!err) {
@@ -253,7 +252,7 @@ own_use.post('/selectmodel_serialedit', function (req, res) {
 async function editown_use(req) {
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '', logststus = false;
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         console.log('edit own use Data:', data);
         let conn = await poolPromise.getConnection();
         if (conn) {

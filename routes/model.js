@@ -13,7 +13,7 @@ async function addmodel(req) {
     console.log('Add vendordetail Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
@@ -72,17 +72,19 @@ model.post('/listmodel', function (req, res, err) {
         +' inner join stock_mgmt.business b on m.bid=b.id'
         +' left join  stock_mgmt.make mk on m.makeid=mk.makeid '
       + ' left join stock_mgmt.device d on m.deviceid=d.deviceid' , finalresult = [],
-        data = req.body;
+        data = req.body,jwtdata =req.jwt_data;
 
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` model.hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` model.hdid= ${jwtdata.hdid} `);
+        if (data.modelid != '' && data.modelid != null) where.push(` m.modelid = ${data.modelid} `);
+        let bid = jwtdata.urole == 999  ? data.busid : jwtdata.bid;
+        if (jwtdata.urole > 888 && data.busid != '' && data.busid != null) where.push(`  m.bid = ${bid} `);
+        if (jwtdata.urole <= 888) where.push(` m.bid= ${bid} `);
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+        }
 
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    //     sqlqueryc += where;
-    // }
-    sqlquery += ' LIMIT ?,? ';
+          sqlquery += ' LIMIT ?,?'
+    
     console.log('testmodel',sqlquery);
     console.log(sqlqueryc);
     pool.getConnection(function (err, conn) {
@@ -110,23 +112,16 @@ model.post('/listmodel', function (req, res, err) {
 model.post('/selectmodel', function (req, res) {
     var where = [], jwtdata = req.jwt_data, sql, data = req.body
         , sqlquery = 'SELECT * FROM stock_mgmt.model';
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
+        console.log("data",data);
+        if (data.bid != '' && data.bid != null) where.push(` bid = ${data.bid} `);
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+        }
 
-
-    // if (data.hasOwnProperty('model_id-') && data.model_id) {
-    //     sqlquery += ` AND model_id =${data.model_id}`;
-    // }
-    // if (data.hasOwnProperty('model_name') && data.model_name) {
-    //     sqlquery += ` AND model_name =${data.model_name}`;
-    // }
-    // if (data.hasOwnProperty('model_num') && data.model_num) {
-    //     sqlquery += ` AND model_num =${data.model_num}`;
-    // }
-    if (where.length > 0) {
-        where = ' WHERE' + where.join(' AND ');
-        sqlquery += where;
-    }
+        if (data.hasOwnProperty('like') && data.like) {
+            sqlquery += ' AND modelname LIKE "%' + data.like + '%" '
+        }
     console.log('data', data)
     pool.getConnection(function (err, conn) {
         if (err) {
@@ -171,7 +166,7 @@ async function editmodel(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();

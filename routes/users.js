@@ -234,6 +234,8 @@ if(data.hasOwnProperty('fname')&& data.fname) where.push(` u.fname ='${data.fnam
 
 if(data.hasOwnProperty('id')&& data.id) where.push(` u.id =${data.id}`)       
 
+
+
     if (where.length > 0) {
         where = ' WHERE' + where.join(' AND ');
         sqlquery += where;
@@ -322,8 +324,10 @@ async function addusers(req) {
                 let addmenurole = await conn.query("SELECT count(*) count FROM stock_mgmt.users WHERE loginid = '" + data.loginid + "'  ");
                 if (addmenurole[0][0]['count'] == 0) {
                     data.address = data.address.replace("'", ' ');
-
-                    let addmenurole = `INSERT INTO stock_mgmt.users SET 
+                    // let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+                  let   urole = data.urole == 999 ? 'Developer' :  data.urole == 888 ? 'Admin' : data.urole == 777 ? 'Bussiness'  : 'Business Employee'
+                  console.log("role  @@@@@@@@@@@", urole);
+                  let addmenurole = `INSERT INTO stock_mgmt.users SET 
                         bid=${data.bid},
                         urole=${data.urole},
                        loginid='${data.loginid}',
@@ -332,6 +336,7 @@ async function addusers(req) {
                         mobile=${data.mobile},                 
                         address='${data.address}',
                         email='${data.email}',
+                        rolename='${urole}',
                         umenu='${insertdata.menurole}' ,
                         cby=${jwtdata.id}
                         `;
@@ -395,6 +400,7 @@ users.post('/addusers', async (req, res) => {
 async function editusers(req, res) {
     return new Promise(async (resolve, reject) => {
         let data = req.body, jwtdata = req.jwt_data, conn, erroraray = [], insertdata = { menurole: JSON.stringify(data.menurole), };
+        let   urole = data.urole == 999 ? 'Developer' :  data.urole == 888 ? 'Admin' : data.urole == 777 ? 'Bussiness'  : 'Business Employee'
         try {
             let hdid = '';
             // if (jwtdata.role > 777 && data.hdid != null && data.hdid != '') hdid = data.hdid;
@@ -421,7 +427,7 @@ async function editusers(req, res) {
                 mobile=${data.mobile},                 
                 address='${data.address}',
                 email='${data.email}',
-                rolename ='${data.rolename}',
+                rolename ='${urole}',
                     umenu='${insertdata.menurole}' where id ='${data.id}' `;
                     // if (jwtdata.role > 777 && data.hdid != null && data.hdid != '') sqlupdate += ` AND hdid=${hdid} `;
                     console.log("update query", sqlupdate);

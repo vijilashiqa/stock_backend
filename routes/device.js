@@ -8,23 +8,20 @@ var express = require('express'),
     compress = require('compression'),
     device = express.Router(),
     pool = require('../connection/conn'),
-poolPromise = require('../connection/conn').poolp;
- const joiValidate = require('../schema/device');
-
-
-
-
+    poolPromise = require('../connection/conn').poolp;
+const joiValidate = require('../schema/device');
 async function adddevice(req) {
     console.log('Add device Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data;
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        console.log("");
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.device WHERE devicename ='" + data.devicename + "' and bid ="+data.bid+"");
+                let checkprofile = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.device WHERE devicename ='" + data.devicename + "' and bid =" + data.bid + "");
                 if (checkprofile[0][0]['cnt'] == 0) {
                     let status = data.status == true ? 1 : 0;
                     // data.addr = data.addr.replace("'", ' ');
@@ -68,21 +65,21 @@ async function adddevice(req) {
 }
 device.post('/listdevice', function (req, res, err) {
     var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT d.deviceid,d.devicename,b.bname FROM `stock_mgmt`.device d'
-    + ' inner join stock_mgmt.business b on d.bid=b.id  ',
-        sqlqueryc = ' SELECT COUNT(*) AS count FROM `stock_mgmt`. device d '
-        + ' inner join stock_mgmt. business b on d.bid=b.id', finalresult = [],
-        data = req.body;
+        + ' inner join stock_mgmt.business b on d.bid=b.id  ',
+        sqlqueryc = 'SELECT COUNT(*) AS count FROM `stock_mgmt`. device d '
+            + ' inner join stock_mgmt. business b on d.bid=b.id', finalresult = [],data = req.body,jwtdata = req.jwt_data, where=[];
+            if (data.deviceid != '' && data.deviceid != null) where.push(` deviceid = ${data.deviceid} `);
+            let bid = jwtdata.urole == 999  ? data.bid : jwtdata.bid;
+        if (jwtdata.urole > 888 && data.bid != '' && data.bid != null) where.push(`  d.bid = ${bid} `);
+        if (jwtdata.urole <= 888) where.push(` d.bid= ${bid} `);
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+        }
 
-    // if (jwtdata.role > 777 && data.hdid != '' && data.hdid != null) where.push(` device.hdid= ${data.hdid} `);
-    // if (jwtdata.role <= 777) where.push(` device.hdid= ${jwtdata.hdid} `);
+          sqlquery += ' LIMIT ?,?'
 
-    // if (where.length > 0) {
-    //     where = ' WHERE' + where.join(' AND ');
-    //     sqlquery += where;
-    //     sqlqueryc += where;
-    // }
-    sqlquery += ' LIMIT ?,? ';
-    console.log('test',sqlquery);
+    console.log('test', sqlquery);
     console.log(sqlqueryc);
     pool.getConnection(function (err, conn) {
         if (!err) {
@@ -113,15 +110,12 @@ device.post('/selectdevice', function (req, res) {
     // if (jwtdata.role <= 777) where.push(` hdid= ${jwtdata.hdid} `);
 
 
-
+ 
     if (data.bid != '' && data.bid != null) where.push(` bid = ${data.bid} `);
     if (where.length > 0) {
         where = ' WHERE' + where.join(' AND ');
         sqlquery += where;
     }
-
-
-
 
     if (data.hasOwnProperty('like') && data.like) {
         sqlquery += ' AND devicename LIKE "%' + data.like + '%" '
@@ -177,18 +171,18 @@ async function editdevice(req) {
     console.log('Add Broadcaster Data:', req.jwt_data);
     return new Promise(async (resolve, reject) => {
         var erroraray = [], data = req.body, jwtdata = req.jwt_data, alog = '';
-        let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
+        let bid = jwtdata.urole == 999 ? data.bid : jwtdata.bid;
         let conn = await poolPromise.getConnection();
         if (conn) {
             await conn.beginTransaction();
             try {
                 console.log('Data', data);
-                let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.`device` WHERE devicename ='"+data.devicename+"' and  deviceid!=" + data.deviceid + "");
+                let checkprofile = await conn.query("SELECT *  FROM stock_mgmt.`device` WHERE devicename ='" + data.devicename + "' and  deviceid!=" + data.deviceid + " and  bid=" + data.bid + "");
                 if (checkprofile[0].length == 0) {
                     // let chs = checkprofile[0][0];
                     // let status = data.status == true ? 1 : 0;
                     let addhd = `UPDATE  stock_mgmt.device SET  bid=${bid},devicename='${data.devicename}', mby =${jwtdata.id}`;
-                     addhd += ' WHERE deviceid =' + data.deviceid
+                    addhd += ' WHERE deviceid =' + data.deviceid
                     console.log('Edit Broadcast Query: ', addhd);
                     addhd = await conn.query(addhd);
                     if (addhd[0]['affectedRows'] > 0) {

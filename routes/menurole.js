@@ -11,11 +11,8 @@ menurole.post('/listmenurole', function (req, res, err) {
         var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT u.id,u.loginid,r.rolename,u.fname,r.role FROM stock_mgmt.users u LEFT JOIN stock_mgmt.urole r ON  r.role=u.urole ',
             sqlqueryc = ' SELECT COUNT(*) AS count  FROM stock_mgmt.users u LEFT JOIN stock_mgmt.urole r ON  r.role=u.urole', finalresult = [],
             data = req.body;
-    
     if(data.hasOwnProperty('fname')&& data.fname) where.push(` u.fname ='${data.fname}'`)
- 
     if(data.hasOwnProperty('id')&& data.id) where.push(` u.id =${data.id}`)       
-    
         if (where.length > 0) {
             where = ' WHERE' + where.join(' AND ');
             sqlquery += where;
@@ -65,7 +62,7 @@ menurole.post('/listmenurole', function (req, res, err) {
     });
 
     menurole.post("/getmenurole", (req, res) => {
-        let jwtdata = req.jwt_data, sqlg, data = req.body;
+        let jwtdata = req.jwt_data, sqlg, data = req.body,errorvalue =[];
         console.log("Data--", data);
         pool.getConnection((err, con) => {
             let sqlpr = `select * from stock_mgmt.users  where id =${data.id}`;
@@ -90,6 +87,91 @@ menurole.post('/listmenurole', function (req, res, err) {
     });
 
 
+    menurole.post('/listurole', function (req, res, err) {
+        var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT * FROM stock_mgmt.urole ',
+            sqlqueryc = ' SELECT COUNT(*) AS count  FROM stock_mgmt.urole', finalresult = [],
+            data = req.body;
+    // if(data.hasOwnProperty('fname')&& data.fname) where.push(` u.fname ='${data.fname}'`)
+    if(data.hasOwnProperty('id')&& data.id) where.push(` id =${data.id}`)       
+        if (where.length > 0) {
+            where = ' WHERE' + where.join(' AND ');
+            sqlquery += where;
+            sqlqueryc += where;
+        }
+        // sqlquery += ' LIMIT ?,? ';
+        console.log('test',sqlquery);
+        console.log(sqlqueryc);
+        pool.getConnection(function (err, conn) {
+            if (!err) {
+                sql = conn.query(sqlquery, [data.index, data.limit], function (err, result) {
+                    if (!err) {
+                        finalresult.push(result);
+                        sql = conn.query(sqlqueryc, function (err, result) {
+                            conn.release();
+                            if (!err) {
+                                finalresult.push(result[0]);
+                                res.end(JSON.stringify(finalresult));
+                            } else {
+                                console.log('err');
+                            }
+                        });
+                    } else {
+                        conn.release();
+                    }
+                });
+            }
+        });
+    });
+    
+    // menurole.post("/getumenu", (req, res) => {
+    //     let jwtdata = req.jwt_data, sqlg, data = req.body;errorvalue =[]
+    //     console.log("Data--", data);
+    //     pool.getConnection((err, con) => {
+    //         let sqlpr = `SELECT * FROM stock_mgmt.urole`;
+
+    //         console.log("Query---", sqlpr);
+    //         if (data.id) {
+    //             sqlg = con.query(sqlpr, data.id, (err, result) => {
+    //                 con.release();
+    //                 if (err) {
+    //                     console.log(err);
+    //                 } else {
+    //                     console.log(result)
+    //                     res.send(JSON.stringify(result));
+    //                 }
+    //             });
+    //         }
+    //         else {
+    //             errorvalue.push({ msg: "Please Try After Sometimes", err_code: 103 });
+    
+    //         }
+    //     });
+    // });
+
+
+    menurole.post('/getumenurole', function (req, res, err) {
+        var sql, sqlquery = 'SELECT * FROM stock_mgmt.urole',
+            sqlqueryc = 'SELECT COUNT(*) AS `count`  FROM stock_mgmt.urole', finalresult = [],
+            data = req.body;
+        pool.getConnection(function (err, conn) {
+            if (!err) {
+                sql = conn.query(sqlquery, function (err, result) {
+                    if (!err) {
+                        finalresult.push(result);
+                        sql = conn.query(sqlqueryc, function (err, result) {
+                            conn.release();
+                            if (!err) {
+                                finalresult.push(result[0]);
+                                res.end(JSON.stringify(finalresult));
+                            }
+                        });
+                    } else {
+                        conn.release();
+                    }
+                });
+            }
+        });
+    })
 
 
     async function addusers(req) {
@@ -234,6 +316,14 @@ menurole.post('/addusers', async (req, res) => {
         });
     }
     
+
+
+
+
+
+
+
+
     menurole.post("/editmenurole", async (req, res) => {
         console.log(req.body);
         req.setTimeout(864000000);
@@ -244,5 +334,71 @@ menurole.post('/addusers', async (req, res) => {
 
 
 
+    
+    async function editurole(req, res) {
+        return new Promise(async (resolve, reject) => {
+            let data = req.body, jwtdata = req.jwt_data, conn, erroraray = [], insertdata = { menurole: JSON.stringify(data.menurole), };
+           console.log("data!!!!!!!!!!!!!!",data);
+            try {
+                conn = await poolPromise.getConnection();
+                if (conn) {
+                    await conn.beginTransaction();
+                    console.log("update", data);
+                    let sqlq = `select exists(select * from stock_mgmt.urole where id ='${data.id}' `;
+                    sqlq += ` ) count `;
+                    console.log("project query", sqlq);
+                    let resp = await conn.query(sqlq);
+                    console.log("result", resp);
+                    if (resp[0][0].count == 0) {
+                        erroraray.push({ msg: "No Data Found", err_code: 1 });
+                        await conn.rollback();
+                    } else {
+                        let sqlupdate = `UPDATE  stock_mgmt.urole SET  
+                        rolename ='${data.urole}',
+                        menu='${insertdata.menurole}' where id ='${data.id}' `;
+                        console.log("update query", sqlupdate);
+                        let result = await conn.query(sqlupdate, data);
+                        console.log("result", result);
+                        if (result[0]["affectedRows"] > 0) {
+                            let sqllog = "INSERT INTO stock_mgmt.activitylog SET table_id='EDIT ROLE',`longtext`='DONE BY',cby=" + data.id;
+                            sqllog = await conn.query(sqllog);
+                            if (sqllog[0]['affectedRows'] > 0) {
+                                erroraray.push({ msg: "Edit Role Succesfully Updated.", err_code: 0 });
+                                await conn.commit();
+                            } else {
+                                erroraray.push({ msg: "Audit Log Cant Add.", err_code: 1111 });
+                                await conn.rollback();
+                            }
+                        } else {
+                            erroraray.push({ msg: "Please Try After Sometimes", err_code: 1111 });
+                            await conn.rollback();
+                        }
+                    }
+                } else {
+                    erroraray.push({ msg: 'Please try after sometimes', err_code: 'ERR' })
+                    await conn.rollback();
+                }
+            } catch (e) {
+                console.log("Catch Block Error", e);
+                erroraray.push({ msg: "Please try after sometimes", error_msg: "TRYE" });
+                await conn.rollback();
+            }
+            if (conn) conn.release();
+            return resolve(erroraray)
+        });
+    }
+
+
+
+
+
+
+    menurole.post("/editurole", async (req, res) => {
+        console.log(req.body);
+        req.setTimeout(864000000);
+        let result = await editurole(req);
+        res.end(JSON.stringify(result));
+    }
+    );
     
 module.exports = menurole;
