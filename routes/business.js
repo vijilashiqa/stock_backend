@@ -120,16 +120,14 @@ business.post('/listbusiness', function (req, res, err) {
 		data = req.body;
 		let bid = jwtdata.urole == 999  ? data.bid : jwtdata.bid;
 	if (data.hasOwnProperty('busid') && data.busid) where.push(` id =${data.busid}`)
-
 	if (data.hasOwnProperty('mobile') && data.mobile) where.push(` id =${data.mobile}`)
-
 		if (data.hasOwnProperty('mail') && data.mail) where.push(` id =${data.mail}`)
-
-			if (jwtdata.urole > 888 && data.bid != '' && data.bid != null) where.push(`  id= ${bid} `);
+		if (jwtdata.urole > 888 && data.bid != '' && data.bid != null) where.push(`  id= ${bid} `);
         if (jwtdata.urole <= 888) where.push(` id= ${bid} `);
         if (where.length > 0) {
             where = ' WHERE' + where.join(' AND ');
             sqlquery += where;
+			sqlqueryc += where;
         }
 
 	if (data.limit && data.index) {

@@ -79,6 +79,7 @@ hub.post('/listhub', function (req, res, err) {
         if (where.length > 0) {
             where = ' WHERE' + where.join(' AND ');
             sqlquery += where;
+            sqlqueryc += where;
         }
 
           sqlquery += ' LIMIT ?,?'

@@ -110,6 +110,7 @@ model_serial_no.post('/listmodel_serial_no', function (req, res) {
         if (where.length > 0) {
             where = ' WHERE' + where.join(' AND ');
             sqlquery += where;
+            sqlqueryc += where;
         }
 
         // sqlquery +='GROUP BY inv_itemid' ;

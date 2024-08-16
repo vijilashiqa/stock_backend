@@ -123,6 +123,7 @@ let bid = jwtdata.urole == 999 ? data.busid : jwtdata.bid;
 	if (where.length > 0) {
 		where = ' WHERE' + where.join(' AND ');
 		sqlquery += where;
+		sqlqueryc += where;
 	}
 
 	if (data.limit || data.limit == '' && data.index || data.index == '') {

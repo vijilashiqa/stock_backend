@@ -226,8 +226,8 @@ const joiValidate = require('../schema/users');
 
 
 users.post('/listuser', function (req, res, err) {
-    var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT u.id,u.loginid,r.rolename,u.fname,r.role FROM stock_mgmt.users u LEFT JOIN stock_mgmt.urole r ON  r.role=u.urole ',
-        sqlqueryc = ' SELECT COUNT(*) AS count  FROM stock_mgmt.users u LEFT JOIN stock_mgmt.urole r ON  r.role=u.urole', finalresult = [],
+    var where = [], jwtdata = req.jwt_data, sql, sqlquery = 'SELECT u.id,u.loginid,r.rolename,u.fname,r.role,b.bname FROM stock_mgmt.users u  LEFT JOIN stock_mgmt.urole r ON  r.role=u.urole LEFT JOIN stock_mgmt.business b ON b.id =u.bid',
+        sqlqueryc = ' SELECT COUNT(*) AS count  FROM stock_mgmt.users u  LEFT JOIN stock_mgmt.urole r ON  r.role=u.urole LEFT JOIN stock_mgmt.business b ON b.id =u.bid', finalresult = [],
         data = req.body;
 
 if(data.hasOwnProperty('fname')&& data.fname) where.push(` u.fname ='${data.fname}'`)
@@ -321,7 +321,9 @@ async function addusers(req) {
             await conn.beginTransaction();
             try {
                 console.log('user Data', data);
-                let addmenurole = await conn.query("SELECT count(*) count FROM stock_mgmt.users WHERE loginid = '" + data.loginid + "'  ");
+                let addmenurole = await conn.query("SELECT count(*) count FROM stock_mgmt.users WHERE  loginid = '" + data.loginid + "' ");
+              console.log("result in the add menu",addmenurole[0][0]['count']);
+              
                 if (addmenurole[0][0]['count'] == 0) {
                     data.address = data.address.replace("'", ' ');
                     // let bid = jwtdata.role == 999 ? data.bid : jwtdata.bid;
@@ -402,24 +404,14 @@ async function editusers(req, res) {
         let data = req.body, jwtdata = req.jwt_data, conn, erroraray = [], insertdata = { menurole: JSON.stringify(data.menurole), };
         let   urole = data.urole == 999 ? 'Developer' :  data.urole == 888 ? 'Admin' : data.urole == 777 ? 'Bussiness'  : 'Business Employee'
         try {
-            let hdid = '';
-            // if (jwtdata.role > 777 && data.hdid != null && data.hdid != '') hdid = data.hdid;
-            // if (jwtdata.role <= 777) hdid = jwtdata.hdid;
             conn = await poolPromise.getConnection();
             if (conn) {
                 await conn.beginTransaction();
                 console.log("update", data);
-                let sqlq = `select exists(select * from stock_mgmt.users where id ='${data.id}' `;
-                // if (jwtdata.role > 777 && data.hdid != null && data.hdid != '') sqlq += ` AND hdid=${hdid} `;
-                sqlq += ` ) count `;
-                console.log("project query", sqlq);
-                let resp = await conn.query(sqlq);
-                console.log("result", resp);
-                if (resp[0][0].count == 0) {
-                    erroraray.push({ msg: "No Data Found", err_code: 1 });
-                    await conn.rollback();
-                } else {
-                    let sqlupdate = `UPDATE  stock_mgmt.users SET  
+                let userupdate = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.users WHERE loginid ='"+data.loginid+"' and  id !=" + data.id + "");
+                if (userupdate[0][0]['cnt'] == 0)
+                 {
+                let sqlupdate = `UPDATE  stock_mgmt.users SET  
                 bid=${data.bid},
                 loginid='${data.loginid}',
                 urole=${data.urole},
@@ -429,7 +421,6 @@ async function editusers(req, res) {
                 email='${data.email}',
                 rolename ='${urole}',
                     umenu='${insertdata.menurole}' where id ='${data.id}' `;
-                    // if (jwtdata.role > 777 && data.hdid != null && data.hdid != '') sqlupdate += ` AND hdid=${hdid} `;
                     console.log("update query", sqlupdate);
                     let result = await conn.query(sqlupdate, data);
                     console.log("result", result);
@@ -447,11 +438,12 @@ async function editusers(req, res) {
                         erroraray.push({ msg: "Please Try After Sometimes", err_code: 1111 });
                         await conn.rollback();
                     }
-                }
+           
             } else {
-                erroraray.push({ msg: 'Please try after sometimes', err_code: 'ERR' })
+                erroraray.push({ msg: 'Loginid Already Exited', err_code: 'ERR' })
                 await conn.rollback();
             }
+        }
         } catch (e) {
             console.log("Catch Block Error", e);
             erroraray.push({ msg: "Please try after sometimes", error_msg: "TRYE" });

@@ -75,6 +75,7 @@ device.post('/listdevice', function (req, res, err) {
         if (where.length > 0) {
             where = ' WHERE' + where.join(' AND ');
             sqlquery += where;
+            sqlqueryc += where;
         }
 
           sqlquery += ' LIMIT ?,?'
@@ -115,6 +116,7 @@ device.post('/selectdevice', function (req, res) {
     if (where.length > 0) {
         where = ' WHERE' + where.join(' AND ');
         sqlquery += where;
+        // sqlqueryc += where;
     }
 
     if (data.hasOwnProperty('like') && data.like) {

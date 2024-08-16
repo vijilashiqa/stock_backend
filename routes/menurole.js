@@ -344,15 +344,20 @@ menurole.post('/addusers', async (req, res) => {
                 if (conn) {
                     await conn.beginTransaction();
                     console.log("update", data);
-                    let sqlq = `select exists(select * from stock_mgmt.urole where id ='${data.id}' `;
-                    sqlq += ` ) count `;
-                    console.log("project query", sqlq);
-                    let resp = await conn.query(sqlq);
-                    console.log("result", resp);
-                    if (resp[0][0].count == 0) {
-                        erroraray.push({ msg: "No Data Found", err_code: 1 });
-                        await conn.rollback();
-                    } else {
+                    // let sqlq = `select exists(select * from stock_mgmt.urole where id ='${data.id}' `;
+                    // sqlq += ` ) count `;
+                    // console.log("project query", sqlq);
+                    // let resp = await conn.query(sqlq);
+                    // console.log("result", resp);
+                    // if (resp[0][0].count == 0) {
+                    //     erroraray.push({ msg: "No Data Found", err_code: 1 });
+                    //     await conn.rollback();
+                    // } else 
+                    let userupdate = await conn.query("SELECT COUNT(*) cnt FROM stock_mgmt.urole WHERE rolename ='"+data.urole+"' and  id !=" + data.id + "");
+                  console.log("userupdate[0][0]['cnt']",userupdate[0][0]['cnt']);
+                  
+                    if (userupdate[0][0]['cnt'] == 0)
+                    {
                         let sqlupdate = `UPDATE  stock_mgmt.urole SET  
                         rolename ='${data.urole}',
                         menu='${insertdata.menurole}' where id ='${data.id}' `;
@@ -373,11 +378,12 @@ menurole.post('/addusers', async (req, res) => {
                             erroraray.push({ msg: "Please Try After Sometimes", err_code: 1111 });
                             await conn.rollback();
                         }
-                    }
+                   
                 } else {
-                    erroraray.push({ msg: 'Please try after sometimes', err_code: 'ERR' })
+                    erroraray.push({ msg: 'Name Already Exited', err_code: 'ERR' })
                     await conn.rollback();
                 }
+            }
             } catch (e) {
                 console.log("Catch Block Error", e);
                 erroraray.push({ msg: "Please try after sometimes", error_msg: "TRYE" });
